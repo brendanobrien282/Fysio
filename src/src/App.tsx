@@ -20,6 +20,8 @@ function PTExerciseTrackerContent() {
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [currentRoutine, setCurrentRoutine] = useState<any>(null);
   const [savedRoutines, setSavedRoutines] = useState<any[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [tempModifications, setTempModifications] = useState<{[key: string]: any}>({});
   
   // Stable first name extraction
   const userFirstName = useMemo(() => {
@@ -332,13 +334,21 @@ function PTExerciseTrackerContent() {
   ];
   
   // Use current routine if available, otherwise use basic routine
-  // Ensure custom routine exercises have proper IDs
-  const allExercises = currentRoutine ? 
+  // Ensure custom routine exercises have proper IDs and apply temporary modifications
+  const baseExercises = currentRoutine ? 
     currentRoutine.exercises.map((ex: any) => ({
       ...ex,
       id: ex.id || ex.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
     })) : 
     basicRoutineExercises;
+
+  // Apply temporary modifications if in edit mode
+  const allExercises = baseExercises.map((ex: any) => {
+    if (tempModifications[ex.id]) {
+      return { ...ex, ...tempModifications[ex.id] };
+    }
+    return ex;
+  });
 
   // Helper function to get exercise emoji based on category or name
   const getExerciseEmoji = (exercise: any) => {
@@ -386,6 +396,36 @@ function PTExerciseTrackerContent() {
     if (name.includes('squat') || name.includes('leg')) return 'How did your legs feel during this exercise?';
     if (name.includes('balance')) return 'How was your balance? Any difficulty maintaining stability?';
     return 'How did this exercise feel? Any discomfort or notes?';
+  };
+
+  // Functions for temporary exercise editing
+  const updateTempExercise = (exerciseId: string, field: string, value: any) => {
+    setTempModifications(prev => ({
+      ...prev,
+      [exerciseId]: {
+        ...prev[exerciseId],
+        [field]: value
+      }
+    }));
+  };
+
+  const resetTempModifications = () => {
+    setTempModifications({});
+    setIsEditMode(false);
+  };
+
+  const toggleEditMode = () => {
+    if (isEditMode) {
+      // Exiting edit mode - ask if user wants to keep changes
+      const hasChanges = Object.keys(tempModifications).length > 0;
+      if (hasChanges) {
+        const keepChanges = confirm('You have unsaved changes. Keep them for this session?');
+        if (!keepChanges) {
+          setTempModifications({});
+        }
+      }
+    }
+    setIsEditMode(!isEditMode);
   };
   const completionPercentage = (completedExercises.length / allExercises.length) * 100;
   
@@ -1560,13 +1600,52 @@ Sent via Fysio - Your Personal Exercise Tracker`;
             fontWeight: '500'
           }}>
             {currentRoutine ? currentRoutine.name : 'Basic Strengthening & Flexibility'}
+            {isEditMode && <span style={{ color: '#f56565', marginLeft: '8px', fontSize: '0.9rem' }}>(Editing)</span>}
           </p>
+          
+          {/* Edit Mode Toggle */}
+          <div style={{ marginBottom: '10px' }}>
+            <button
+              onClick={toggleEditMode}
+              style={{
+                backgroundColor: isEditMode ? '#f56565' : '#4299e1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                marginRight: '8px'
+              }}
+            >
+              {isEditMode ? '✏️ Exit Edit Mode' : '✏️ Edit Routine'}
+            </button>
+            {isEditMode && Object.keys(tempModifications).length > 0 && (
+              <button
+                onClick={resetTempModifications}
+                style={{
+                  backgroundColor: '#718096',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                🔄 Reset Changes
+              </button>
+            )}
+          </div>
           {savedRoutines.length > 0 && (
             <div style={{ marginTop: '10px' }}>
               <button
                 onClick={() => {
                   setCurrentRoutine(null);
                   setCompletedExercises([]);
+                  // Exit edit mode when switching routines
+                  setIsEditMode(false);
+                  setTempModifications({});
                   // No need to reset exercise notes - keep all existing notes
                 }}
                 style={{
@@ -1588,6 +1667,9 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                   onClick={() => {
                     setCurrentRoutine(routine);
                     setCompletedExercises([]);
+                    // Exit edit mode when switching routines
+                    setIsEditMode(false);
+                    setTempModifications({});
                     // Initialize exercise notes for custom routine (merge with existing)
                     const newExerciseNotes: {[key: string]: any[]} = { ...exerciseNotes };
                     routine.exercises.forEach((ex: any) => {
@@ -1804,23 +1886,140 @@ Sent via Fysio - Your Personal Exercise Tracker`;
             🏃‍♀️ {currentRoutine ? currentRoutine.name : 'Basic Strengthening & Flexibility'}
           </h3>
           
+          {/* Edit Mode Info */}
+          {isEditMode && (
+            <div style={{
+              backgroundColor: '#fef5e7',
+              border: '1px solid #f6ad55',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '20px'
+            }}>
+              <p style={{ 
+                margin: 0, 
+                fontSize: '0.9rem', 
+                color: '#744210',
+                fontWeight: '500'
+              }}>
+                ✏️ <strong>Edit Mode Active:</strong> Modify exercises for today's session only. 
+                Changes won't affect your saved routine.
+              </p>
+            </div>
+          )}
+          
           {allExercises.map((exercise: any) => (
-            <ExerciseCard 
-              key={exercise.id}
-              id={exercise.id}
-              emoji={getExerciseEmoji(exercise)}
-              title={exercise.name}
-              description={getExerciseDescription(exercise)}
-              placeholder={getExercisePlaceholder(exercise)}
-              isCompleted={completedExercises.includes(exercise.id)}
-              onComplete={markComplete}
-              isNoteExpanded={expandedNotes[exercise.id] || false}
-              onToggleNote={toggleNoteSection}
-              currentNote={currentNotes[exercise.id]}
-              onUpdateNote={updateCurrentNote}
-              onSaveNote={saveNote}
-              previousNotes={exerciseNotes[exercise.id] || []}
-            />
+            <div key={exercise.id}>
+              <ExerciseCard 
+                id={exercise.id}
+                emoji={getExerciseEmoji(exercise)}
+                title={exercise.name}
+                description={getExerciseDescription(exercise)}
+                placeholder={getExercisePlaceholder(exercise)}
+                isCompleted={completedExercises.includes(exercise.id)}
+                onComplete={markComplete}
+                isNoteExpanded={expandedNotes[exercise.id] || false}
+                onToggleNote={toggleNoteSection}
+                currentNote={currentNotes[exercise.id]}
+                onUpdateNote={updateCurrentNote}
+                onSaveNote={saveNote}
+                previousNotes={exerciseNotes[exercise.id] || []}
+              />
+              
+              {/* Edit Controls - Only shown in edit mode */}
+              {isEditMode && (
+                <div style={{
+                  backgroundColor: '#f7fafc',
+                  border: '2px dashed #cbd5e0',
+                  borderRadius: '8px',
+                  padding: '12px',
+                  marginTop: '-8px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '12px', 
+                    alignItems: 'center',
+                    flexWrap: 'wrap'
+                  }}>
+                    <span style={{ 
+                      fontSize: '0.9rem', 
+                      fontWeight: '600', 
+                      color: '#4a5568',
+                      minWidth: '60px'
+                    }}>
+                      ✏️ Edit:
+                    </span>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <label style={{ fontSize: '0.85rem', color: '#718096' }}>Sets:</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={exercise.sets}
+                        onChange={(e) => updateTempExercise(exercise.id, 'sets', parseInt(e.target.value))}
+                        style={{
+                          width: '50px',
+                          padding: '4px',
+                          border: '1px solid #cbd5e0',
+                          borderRadius: '4px',
+                          fontSize: '0.85rem'
+                        }}
+                      />
+                    </div>
+
+                    {exercise.type === 'reps' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <label style={{ fontSize: '0.85rem', color: '#718096' }}>Reps:</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="50"
+                          value={exercise.reps}
+                          onChange={(e) => updateTempExercise(exercise.id, 'reps', parseInt(e.target.value))}
+                          style={{
+                            width: '50px',
+                            padding: '4px',
+                            border: '1px solid #cbd5e0',
+                            borderRadius: '4px',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <label style={{ fontSize: '0.85rem', color: '#718096' }}>Duration (sec):</label>
+                        <input
+                          type="number"
+                          min="5"
+                          max="300"
+                          step="5"
+                          value={exercise.duration}
+                          onChange={(e) => updateTempExercise(exercise.id, 'duration', parseInt(e.target.value))}
+                          style={{
+                            width: '60px',
+                            padding: '4px',
+                            border: '1px solid #cbd5e0',
+                            borderRadius: '4px',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {tempModifications[exercise.id] && (
+                      <span style={{ 
+                        fontSize: '0.8rem', 
+                        color: '#f56565', 
+                        fontWeight: '500' 
+                      }}>
+                        Modified ✓
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
         </div>
 
