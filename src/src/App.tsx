@@ -339,6 +339,54 @@ function PTExerciseTrackerContent() {
       id: ex.id || ex.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
     })) : 
     basicRoutineExercises;
+
+  // Helper function to get exercise emoji based on category or name
+  const getExerciseEmoji = (exercise: any) => {
+    const name = exercise.name.toLowerCase();
+    const category = exercise.category?.toLowerCase() || '';
+    
+    if (name.includes('neck') || name.includes('roll')) return '🔄';
+    if (name.includes('shoulder') || name.includes('shrug')) return '🤷‍♀️';
+    if (name.includes('arm') || name.includes('circle')) return '🌀';
+    if (name.includes('push') || name.includes('wall')) return '💪';
+    if (name.includes('chest') || name.includes('stretch')) return '🤗';
+    if (name.includes('cat') || name.includes('cow')) return '🐱';
+    if (name.includes('knee') || name.includes('chest')) return '🤗';
+    if (name.includes('calf') || name.includes('raise')) return '🏃‍♀️';
+    if (name.includes('squat') || name.includes('mini')) return '🏋️‍♀️';
+    if (name.includes('hamstring')) return '🦵';
+    if (name.includes('ankle') || name.includes('circle')) return '🔄';
+    if (name.includes('balance') || name.includes('stand')) return '⚖️';
+    if (category.includes('flexibility') || category.includes('stretch')) return '🤸‍♀️';
+    if (category.includes('strength') || category.includes('upper')) return '💪';
+    if (category.includes('lower') || category.includes('leg')) return '🦵';
+    if (category.includes('balance') || category.includes('coordination')) return '⚖️';
+    if (category.includes('cardio') || category.includes('cardiovascular')) return '❤️';
+    return '🏃‍♀️'; // Default emoji
+  };
+
+  // Helper function to format exercise description
+  const getExerciseDescription = (exercise: any) => {
+    if (exercise.type === 'reps') {
+      return `${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${exercise.reps} repetitions`;
+    } else {
+      const minutes = Math.floor(exercise.duration / 60);
+      const seconds = exercise.duration % 60;
+      const timeStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds} seconds`;
+      return `${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${timeStr}`;
+    }
+  };
+
+  // Helper function to get exercise placeholder text
+  const getExercisePlaceholder = (exercise: any) => {
+    const name = exercise.name.toLowerCase();
+    if (name.includes('neck')) return 'Any tension or stiffness in your neck?';
+    if (name.includes('shoulder')) return 'How did your shoulders feel? Any tightness?';
+    if (name.includes('stretch')) return 'How did this stretch feel? Any areas of tightness?';
+    if (name.includes('squat') || name.includes('leg')) return 'How did your legs feel during this exercise?';
+    if (name.includes('balance')) return 'How was your balance? Any difficulty maintaining stability?';
+    return 'How did this exercise feel? Any discomfort or notes?';
+  };
   const completionPercentage = (completedExercises.length / allExercises.length) * 100;
   
   // Calculate dynamic adherence based on actual workout history
@@ -1743,224 +1791,37 @@ Sent via Fysio - Your Personal Exercise Tracker`;
           </div>
         </div>
 
-        {/* Upper Body Strengthening & Flexibility */}
+        {/* Dynamic Exercise List */}
         <div style={{ marginBottom: '30px' }}>
           <h3 style={{
             color: '#2d3748',
             fontSize: '1.4rem',
             fontWeight: '600',
             marginBottom: '15px',
-            borderLeft: '4px solid #ed8936',
+            borderLeft: '4px solid #667eea',
             paddingLeft: '12px'
           }}>
-            💪 Upper Body Strengthening & Flexibility
+            🏃‍♀️ {currentRoutine ? currentRoutine.name : 'Basic Strengthening & Flexibility'}
           </h3>
           
-          <ExerciseCard 
-            id="neck-rolls"
-            emoji="🔄"
-            title="Neck Rolls"
-            description="1 set of 5 repetitions"
-            placeholder="Any tension or stiffness in your neck?"
-            isCompleted={completedExercises.includes('neck-rolls')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['neck-rolls'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['neck-rolls']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['neck-rolls']}
-          />
-          
-          <ExerciseCard 
-            id="shoulder-shrugs"
-            emoji="🤷‍♀️"
-            title="Shoulder Shrugs"
-            description="2 sets of 10 repetitions"
-            placeholder="How did your shoulders feel? Any tightness?"
-            isCompleted={completedExercises.includes('shoulder-shrugs')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['shoulder-shrugs'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['shoulder-shrugs']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['shoulder-shrugs']}
-          />
-
-          <ExerciseCard 
-            id="arm-circles"
-            emoji="🌀"
-            title="Arm Circles"
-            description="1 set of 10 repetitions"
-            placeholder="Any shoulder mobility restrictions?"
-            isCompleted={completedExercises.includes('arm-circles')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['arm-circles'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['arm-circles']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['arm-circles']}
-          />
-
-          <ExerciseCard 
-            id="wall-push-ups"
-            emoji="🏠"
-            title="Wall Push-ups"
-            description="2 sets of 8 repetitions"
-            placeholder="How challenging was this? Any wrist or shoulder discomfort?"
-            isCompleted={completedExercises.includes('wall-push-ups')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['wall-push-ups'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['wall-push-ups']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['wall-push-ups']}
-          />
-
-          <ExerciseCard 
-            id="chest-stretch"
-            emoji="🚪"
-            title="Doorway Chest Stretch"
-            description="2 sets of 30 seconds"
-            placeholder="How deep could you stretch? Any tightness in chest?"
-            isCompleted={completedExercises.includes('chest-stretch')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['chest-stretch'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['chest-stretch']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['chest-stretch']}
-          />
-
-          <ExerciseCard 
-            id="cat-cow"
-            emoji="🐱"
-            title="Cat-Cow Stretch"
-            description="1 set of 8 repetitions"
-            placeholder="How did your spine feel? Any stiffness or improvements?"
-            isCompleted={completedExercises.includes('cat-cow')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['cat-cow'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['cat-cow']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['cat-cow']}
-          />
-        </div>
-
-        {/* Lower Body Strengthening & Flexibility */}
-        <div>
-          <h3 style={{
-            color: '#2d3748',
-            fontSize: '1.4rem',
-            fontWeight: '600',
-            marginBottom: '15px',
-            borderLeft: '4px solid #9f7aea',
-            paddingLeft: '12px'
-          }}>
-            🦵 Lower Body Strengthening & Flexibility
-          </h3>
-          
-          <ExerciseCard 
-            id="knee-to-chest"
-            emoji="🤗"
-            title="Knee-to-Chest Stretch"
-            description="2 sets of 30 seconds each leg"
-            placeholder="How did your lower back feel? Any tightness?"
-            isCompleted={completedExercises.includes('knee-to-chest')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['knee-to-chest'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['knee-to-chest']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['knee-to-chest']}
-          />
-
-          <ExerciseCard 
-            id="calf-raises"
-            emoji="🏃‍♀️"
-            title="Calf Raises"
-            description="2 sets of 12 repetitions"
-            placeholder="How did this exercise feel? Any calf tightness?"
-            isCompleted={completedExercises.includes('calf-raises')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['calf-raises'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['calf-raises']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['calf-raises']}
-          />
-
-          <ExerciseCard 
-            id="mini-squats"
-            emoji="🏋️‍♀️"
-            title="Mini Squats"
-            description="2 sets of 10 repetitions"
-            placeholder="How deep could you squat? Any knee or hip discomfort?"
-            isCompleted={completedExercises.includes('mini-squats')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['mini-squats'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['mini-squats']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['mini-squats']}
-          />
-          
-          <ExerciseCard 
-            id="hamstring-stretch"
-            emoji="🧘‍♀️"
-            title="Seated Hamstring Stretch"
-            description="2 sets of 30 seconds each leg"
-            placeholder="How far could you stretch? Any tightness or improvements?"
-            isCompleted={completedExercises.includes('hamstring-stretch')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['hamstring-stretch'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['hamstring-stretch']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['hamstring-stretch']}
-          />
-          
-          <ExerciseCard 
-            id="ankle-circles"
-            emoji="🤸‍♀️"
-            title="Ankle Circles"
-            description="1 set of 10 each direction"
-            placeholder="Any stiffness or range of motion changes?"
-            isCompleted={completedExercises.includes('ankle-circles')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['ankle-circles'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['ankle-circles']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['ankle-circles']}
-          />
-
-          <ExerciseCard 
-            id="balance-stands"
-            emoji="⚖️"
-            title="Single-Leg Balance"
-            description="2 sets of 15 seconds each leg"
-            placeholder="How was your balance? Any wobbling or improvements?"
-            isCompleted={completedExercises.includes('balance-stands')}
-            onComplete={markComplete}
-            isNoteExpanded={expandedNotes['balance-stands'] || false}
-            onToggleNote={toggleNoteSection}
-            currentNote={currentNotes['balance-stands']}
-            onUpdateNote={updateCurrentNote}
-            onSaveNote={saveNote}
-            previousNotes={exerciseNotes['balance-stands']}
-          />
+          {allExercises.map((exercise: any) => (
+            <ExerciseCard 
+              key={exercise.id}
+              id={exercise.id}
+              emoji={getExerciseEmoji(exercise)}
+              title={exercise.name}
+              description={getExerciseDescription(exercise)}
+              placeholder={getExercisePlaceholder(exercise)}
+              isCompleted={completedExercises.includes(exercise.id)}
+              onComplete={markComplete}
+              isNoteExpanded={expandedNotes[exercise.id] || false}
+              onToggleNote={toggleNoteSection}
+              currentNote={currentNotes[exercise.id]}
+              onUpdateNote={updateCurrentNote}
+              onSaveNote={saveNote}
+              previousNotes={exerciseNotes[exercise.id] || []}
+            />
+          ))}
         </div>
 
         {/* Complete Today's Exercises Button */}
