@@ -18,6 +18,8 @@ function PTExerciseTrackerContent() {
   const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
+  const [currentRoutine, setCurrentRoutine] = useState<any>(null);
+  const [savedRoutines, setSavedRoutines] = useState<any[]>([]);
   
   // Stable first name extraction
   const userFirstName = useMemo(() => {
@@ -80,11 +82,12 @@ function PTExerciseTrackerContent() {
           setShowWelcome(true);
         }
         
-        // Load workout history
+        // Load workout history and saved routines
         try {
           loadWorkoutHistory();
+          loadSavedRoutines();
         } catch (error) {
-          console.warn('Failed to load workout history:', error);
+          console.warn('Failed to load workout history or routines:', error);
         }
       } catch (error) {
         console.warn('localStorage access failed, showing welcome screen:', error);
@@ -138,8 +141,8 @@ function PTExerciseTrackerContent() {
 
   const handleSaveRoutine = (routine: any, exercises: any[]) => {
     try {
-      // For now, save to localStorage (later we'll save to Supabase)
-      const savedRoutines = JSON.parse(localStorage.getItem('fysio_routines') || '[]');
+      console.log('Saving routine:', routine.name, 'with', exercises.length, 'exercises');
+      
       const newRoutine = {
         id: Date.now().toString(),
         ...routine,
@@ -147,15 +150,60 @@ function PTExerciseTrackerContent() {
         createdAt: new Date().toISOString(),
         userId: user?.id
       };
-      savedRoutines.push(newRoutine);
-      localStorage.setItem('fysio_routines', JSON.stringify(savedRoutines));
+
+      // Try to load existing routines with fallback
+      let existingRoutines: any[] = [];
+      try {
+        existingRoutines = JSON.parse(localStorage.getItem('fysio_routines') || '[]');
+      } catch (error) {
+        try {
+          existingRoutines = JSON.parse(sessionStorage.getItem('fysio_routines') || '[]');
+        } catch (sessionError) {
+          existingRoutines = [];
+        }
+      }
+
+      const updatedRoutines = [...existingRoutines, newRoutine];
+      const saveResult = saveWithFallback('fysio_routines', updatedRoutines);
       
-      alert(`🎉 Routine "${routine.name}" saved successfully!`);
+      if (saveResult.success) {
+        alert(`🎉 Routine "${routine.name}" saved successfully! (${saveResult.storage})`);
+        
+        // Update current routine to the newly saved one
+        setCurrentRoutine(newRoutine);
+        setSavedRoutines(updatedRoutines.filter((r: any) => r.userId === user?.id));
+        
+        // Reset exercise completion state for new routine
+        setCompletedExercises([]);
+        
+        // Initialize exercise notes for new routine (merge with existing)
+        try {
+          const newExerciseNotes: {[key: string]: any[]} = { ...exerciseNotes };
+          exercises.forEach((ex: any) => {
+            const exerciseId = ex.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            if (!newExerciseNotes[exerciseId]) {
+              newExerciseNotes[exerciseId] = [];
+            }
+          });
+          setExerciseNotes(newExerciseNotes);
+          console.log('Exercise notes updated successfully');
+        } catch (notesError) {
+          console.error('Error updating exercise notes:', notesError);
+          // Continue without crashing
+        }
+        
+      } else {
+        alert(`⚠️ Routine "${routine.name}" created but couldn't be saved. It will be available this session only.`);
+        // Still set as current routine for this session
+        setCurrentRoutine(newRoutine);
+      }
+      
       setShowRoutineBuilder(false);
+      
     } catch (error) {
-      console.error('Failed to save routine to localStorage:', error);
-      alert(`⚠️ Routine "${routine.name}" created but couldn't be saved locally. It will be available this session.`);
-      setShowRoutineBuilder(false);
+      console.error('Error in handleSaveRoutine:', error);
+      alert(`❌ Error saving routine: ${error}. Please try again.`);
+      // Don't close the routine builder if there's an error
     }
   };
 
@@ -227,6 +275,45 @@ function PTExerciseTrackerContent() {
     }
   };
 
+  const loadSavedRoutines = () => {
+    try {
+      const routines = JSON.parse(localStorage.getItem('fysio_routines') || '[]');
+      const userRoutines = routines.filter((routine: any) => routine.userId === user?.id);
+      setSavedRoutines(userRoutines);
+      
+      // If user has saved routines, use the most recent one as current
+      if (userRoutines.length > 0) {
+        const mostRecentRoutine = userRoutines.sort((a: any, b: any) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        setCurrentRoutine(mostRecentRoutine);
+      } else {
+        // Use default routine if no custom routines exist
+        setCurrentRoutine(null);
+      }
+    } catch (error) {
+      console.warn('Failed to load saved routines from localStorage:', error);
+      setSavedRoutines([]);
+      setCurrentRoutine(null);
+    }
+  };
+
+  // Fallback storage using sessionStorage when localStorage fails
+  const saveWithFallback = (key: string, data: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      return { success: true, storage: 'localStorage' };
+    } catch (error) {
+      try {
+        sessionStorage.setItem(key, JSON.stringify(data));
+        return { success: true, storage: 'sessionStorage' };
+      } catch (sessionError) {
+        console.error('Both localStorage and sessionStorage failed:', error, sessionError);
+        return { success: false, storage: 'none' };
+      }
+    }
+  };
+
 
   // Basic Strengthening & Stretching Routine
   const basicRoutineExercises = [
@@ -244,7 +331,14 @@ function PTExerciseTrackerContent() {
     { id: 'balance-stands', name: 'Single-Leg Balance', category: 'Balance', sets: 2, duration: 15, type: 'time' }
   ];
   
-  const allExercises = basicRoutineExercises.map(ex => ex.id);
+  // Use current routine if available, otherwise use basic routine
+  // Ensure custom routine exercises have proper IDs
+  const allExercises = currentRoutine ? 
+    currentRoutine.exercises.map((ex: any) => ({
+      ...ex,
+      id: ex.id || ex.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
+    })) : 
+    basicRoutineExercises;
   const completionPercentage = (completedExercises.length / allExercises.length) * 100;
   
   // Calculate dynamic adherence based on actual workout history
@@ -1392,6 +1486,87 @@ Sent via Fysio - Your Personal Exercise Tracker`;
           <p style={{ fontSize: '1rem', color: '#4a5568', margin: '0 0 15px 0' }}>
             Welcome back, <strong>{userFirstName}!</strong>
           </p>
+        </div>
+
+        {/* Current Routine Display */}
+        <div style={{ 
+          textAlign: 'center', 
+          marginBottom: '20px',
+          padding: '15px',
+          backgroundColor: '#f7fafc',
+          borderRadius: '12px',
+          border: '2px solid #e2e8f0'
+        }}>
+          <h3 style={{ 
+            color: '#2d3748', 
+            margin: '0 0 10px 0',
+            fontSize: '1.1rem',
+            fontWeight: '600'
+          }}>
+            📋 Current Routine
+          </h3>
+          <p style={{ 
+            color: '#4a5568', 
+            margin: '0 0 10px 0',
+            fontSize: '1rem',
+            fontWeight: '500'
+          }}>
+            {currentRoutine ? currentRoutine.name : 'Basic Strengthening & Flexibility'}
+          </p>
+          {savedRoutines.length > 0 && (
+            <div style={{ marginTop: '10px' }}>
+              <button
+                onClick={() => {
+                  setCurrentRoutine(null);
+                  setCompletedExercises([]);
+                  // No need to reset exercise notes - keep all existing notes
+                }}
+                style={{
+                  backgroundColor: currentRoutine ? '#e2e8f0' : '#667eea',
+                  color: currentRoutine ? '#4a5568' : 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  marginRight: '8px'
+                }}
+              >
+                Basic Routine
+              </button>
+              {savedRoutines.map((routine: any) => (
+                <button
+                  key={routine.id}
+                  onClick={() => {
+                    setCurrentRoutine(routine);
+                    setCompletedExercises([]);
+                    // Initialize exercise notes for custom routine (merge with existing)
+                    const newExerciseNotes: {[key: string]: any[]} = { ...exerciseNotes };
+                    routine.exercises.forEach((ex: any) => {
+                      const exerciseId = ex.id || ex.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                      if (!newExerciseNotes[exerciseId]) {
+                        newExerciseNotes[exerciseId] = [];
+                      }
+                    });
+                    setExerciseNotes(newExerciseNotes);
+                  }}
+                  style={{
+                    backgroundColor: currentRoutine?.id === routine.id ? '#667eea' : '#e2e8f0',
+                    color: currentRoutine?.id === routine.id ? 'white' : '#4a5568',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    marginRight: '8px',
+                    marginTop: '4px'
+                  }}
+                >
+                  {routine.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
 
