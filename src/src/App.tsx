@@ -74,16 +74,28 @@ function PTExerciseTrackerContent() {
 
   const { signOut } = useAuth();
 
-  // Check if user is new and should see welcome screen
+  // Check if user should see welcome screen
   useEffect(() => {
     if (user) {
       try {
-        // Check if user has seen welcome screen before (using localStorage for now)
-        const hasSeenWelcome = localStorage.getItem(`fysio_welcome_${user.id}`);
-        if (!hasSeenWelcome) {
-          setShowWelcome(true);
-        }
+        // Always show welcome screen - but content will vary based on user history
+        setShowWelcome(true);
         
+        // Check if localStorage is corrupted and repair if needed
+        try {
+          localStorage.getItem('test');
+        } catch (error) {
+          console.log('🔧 Detected localStorage corruption, repairing...');
+          try {
+            localStorage.clear();
+            localStorage.setItem('fysio_routines', '[]');
+            localStorage.setItem('fysio_workout_history', '[]');
+            console.log('✅ localStorage repaired successfully');
+          } catch (repairError) {
+            console.log('❌ Could not repair localStorage, will use sessionStorage');
+          }
+        }
+
         // Load workout history and saved routines
         try {
           loadWorkoutHistory();
@@ -279,8 +291,14 @@ function PTExerciseTrackerContent() {
 
   const loadSavedRoutines = () => {
     try {
+      console.log('🔍 Loading saved routines...');
       const routines = JSON.parse(localStorage.getItem('fysio_routines') || '[]');
+      console.log('📦 All routines in localStorage:', routines);
+      console.log('👤 Current user ID:', user?.id);
+      
       const userRoutines = routines.filter((routine: any) => routine.userId === user?.id);
+      console.log('🎯 User routines found:', userRoutines);
+      
       setSavedRoutines(userRoutines);
       
       // If user has saved routines, use the most recent one as current
@@ -288,17 +306,20 @@ function PTExerciseTrackerContent() {
         const mostRecentRoutine = userRoutines.sort((a: any, b: any) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
+        console.log('✅ Setting current routine to:', mostRecentRoutine.name);
         setCurrentRoutine(mostRecentRoutine);
       } else {
+        console.log('❌ No user routines found, using default');
         // Use default routine if no custom routines exist
         setCurrentRoutine(null);
       }
     } catch (error) {
-      console.warn('Failed to load saved routines from localStorage:', error);
+      console.error('💥 Failed to load saved routines from localStorage:', error);
       setSavedRoutines([]);
       setCurrentRoutine(null);
     }
   };
+
 
   // Fallback storage using sessionStorage when localStorage fails
   const saveWithFallback = (key: string, data: any) => {
@@ -350,29 +371,11 @@ function PTExerciseTrackerContent() {
     return ex;
   });
 
-  // Helper function to get exercise emoji based on category or name
-  const getExerciseEmoji = (exercise: any) => {
-    const name = exercise.name.toLowerCase();
-    const category = exercise.category?.toLowerCase() || '';
-    
-    if (name.includes('neck') || name.includes('roll')) return '🔄';
-    if (name.includes('shoulder') || name.includes('shrug')) return '🤷‍♀️';
-    if (name.includes('arm') || name.includes('circle')) return '🌀';
-    if (name.includes('push') || name.includes('wall')) return '💪';
-    if (name.includes('chest') || name.includes('stretch')) return '🤗';
-    if (name.includes('cat') || name.includes('cow')) return '🐱';
-    if (name.includes('knee') || name.includes('chest')) return '🤗';
-    if (name.includes('calf') || name.includes('raise')) return '🏃‍♀️';
-    if (name.includes('squat') || name.includes('mini')) return '🏋️‍♀️';
-    if (name.includes('hamstring')) return '🦵';
-    if (name.includes('ankle') || name.includes('circle')) return '🔄';
-    if (name.includes('balance') || name.includes('stand')) return '⚖️';
-    if (category.includes('flexibility') || category.includes('stretch')) return '🤸‍♀️';
-    if (category.includes('strength') || category.includes('upper')) return '💪';
-    if (category.includes('lower') || category.includes('leg')) return '🦵';
-    if (category.includes('balance') || category.includes('coordination')) return '⚖️';
-    if (category.includes('cardio') || category.includes('cardiovascular')) return '❤️';
-    return '🏃‍♀️'; // Default emoji
+  // Helper function to get exercise icon - simple and clean
+  const getExerciseEmoji = (_exercise: any) => {
+    // Just return a simple bullet point for all exercises
+    // Clean and consistent, no confusing emojis
+    return '•';
   };
 
   // Helper function to format exercise description
@@ -558,7 +561,7 @@ function PTExerciseTrackerContent() {
       const notes = exerciseNotes[exerciseId] || [];
       if (notes.length > 0) {
         const latestNote = notes[notes.length - 1];
-        const exerciseName = allExercises.find(ex => ex.id === exerciseId)?.name || exerciseId;
+        const exerciseName = allExercises.find((ex: any) => ex.id === exerciseId)?.name || exerciseId;
         recentNotes.push(`${exerciseName}: "${latestNote.text}"`);
       }
     }
@@ -1188,6 +1191,9 @@ Sent via Fysio - Your Personal Exercise Tracker`;
 
   // Show welcome screen for new users
   if (showWelcome && user) {
+    // Determine if user is new or returning based on their data
+    const isNewUser = savedRoutines.length === 0 && workoutHistory.length === 0;
+    
     return (
       <div style={{
         minHeight: '100vh',
@@ -1279,7 +1285,7 @@ Sent via Fysio - Your Personal Exercise Tracker`;
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text'
           }}>
-            Welcome to FYSIO!
+            {isNewUser ? 'Welcome to FYSIO!' : `Welcome back, ${userFirstName}!`}
           </h1>
           
           <p style={{
@@ -1288,109 +1294,200 @@ Sent via Fysio - Your Personal Exercise Tracker`;
             lineHeight: '1.6',
             margin: '0 0 30px 0'
           }}>
-            Your personal exercise tracker designed to help you stay consistent with your physical therapy and fitness routines.
+            {isNewUser 
+              ? 'Your personal exercise tracker designed to help you stay consistent with your physical therapy and fitness routines.'
+              : 'Ready to continue your fitness journey? Choose how you\'d like to proceed with your exercises today.'
+            }
           </p>
           
-          <div style={{
-            backgroundColor: '#f7fafc',
-            border: '2px solid #e2e8f0',
-            borderRadius: '12px',
-            padding: '25px',
-            marginBottom: '30px',
-            textAlign: 'left'
-          }}>
-            <h3 style={{
-              color: '#2d3748',
-              fontSize: '1.3rem',
-              fontWeight: '600',
-              margin: '0 0 15px 0'
-            }}>
-              What Fysio helps you do:
-            </h3>
-            <ul style={{
-              color: '#4a5568',
-              fontSize: '1rem',
-              lineHeight: '1.6',
-              margin: 0,
-              paddingLeft: '20px'
-            }}>
-              <li style={{ marginBottom: '8px' }}>📋 Create custom exercise routines tailored to your needs</li>
-              <li style={{ marginBottom: '8px' }}>✅ Track daily exercise completion and progress</li>
-              <li style={{ marginBottom: '8px' }}>📝 Add notes about how exercises feel</li>
-              <li style={{ marginBottom: '8px' }}>📊 Monitor your streaks and adherence rates</li>
-              <li style={{ marginBottom: '8px' }}>📤 Generate progress reports for your PT or trainer</li>
-            </ul>
-          </div>
-          
-          <button
-            onClick={() => {
-              try {
-                localStorage.setItem(`fysio_welcome_${user.id}`, 'true');
-              } catch (error) {
-                console.warn('Failed to save welcome preference:', error);
-              }
-              setShowWelcome(false);
-              setShowRoutineBuilder(true);
-            }}
-            style={{
-              width: '100%',
-              padding: '16px',
-              backgroundColor: '#48bb78',
-              color: 'white',
-              border: 'none',
+          {isNewUser ? (
+            <div style={{
+              backgroundColor: '#f7fafc',
+              border: '2px solid #e2e8f0',
               borderRadius: '12px',
-              fontSize: '1.1rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              marginBottom: '15px',
-              boxShadow: '0 4px 8px rgba(72, 187, 120, 0.3)'
-            }}
-            onMouseOver={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#38a169';
-              (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
-            }}
-            onMouseOut={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#48bb78';
-              (e.target as HTMLButtonElement).style.transform = 'translateY(0px)';
-            }}
-          >
-            🚀 Get Started - Create Your Exercise Routine
-          </button>
+              padding: '25px',
+              marginBottom: '30px',
+              textAlign: 'left'
+            }}>
+              <h3 style={{
+                color: '#2d3748',
+                fontSize: '1.3rem',
+                fontWeight: '600',
+                margin: '0 0 15px 0'
+              }}>
+                What Fysio helps you do:
+              </h3>
+              <ul style={{
+                color: '#4a5568',
+                fontSize: '1rem',
+                lineHeight: '1.6',
+                margin: 0,
+                paddingLeft: '20px'
+              }}>
+                <li style={{ marginBottom: '8px' }}>📋 Create custom exercise routines tailored to your needs</li>
+                <li style={{ marginBottom: '8px' }}>✅ Track daily exercise completion and progress</li>
+                <li style={{ marginBottom: '8px' }}>📝 Add notes about how exercises feel</li>
+                <li style={{ marginBottom: '8px' }}>📊 Monitor your streaks and adherence rates</li>
+                <li style={{ marginBottom: '8px' }}>📤 Generate progress reports for your PT or trainer</li>
+              </ul>
+            </div>
+          ) : (
+            <div style={{
+              backgroundColor: '#f0fff4',
+              border: '2px solid #9ae6b4',
+              borderRadius: '12px',
+              padding: '25px',
+              marginBottom: '30px',
+              textAlign: 'left'
+            }}>
+              <h3 style={{
+                color: '#2d3748',
+                fontSize: '1.3rem',
+                fontWeight: '600',
+                margin: '0 0 15px 0'
+              }}>
+                Your Progress Summary:
+              </h3>
+              <div style={{
+                color: '#4a5568',
+                fontSize: '1rem',
+                lineHeight: '1.6',
+                margin: 0
+              }}>
+                <p style={{ marginBottom: '8px' }}>🏋️ <strong>{savedRoutines.length}</strong> custom routine{savedRoutines.length !== 1 ? 's' : ''} created</p>
+                <p style={{ marginBottom: '8px' }}>📅 <strong>{workoutHistory.length}</strong> workout{workoutHistory.length !== 1 ? 's' : ''} completed</p>
+                <p style={{ marginBottom: '8px' }}>🔥 Current streak: <strong>{calculateStreak()}</strong> day{calculateStreak() !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+          )}
           
-          <button
-            onClick={() => {
-              try {
-                localStorage.setItem(`fysio_welcome_${user.id}`, 'true');
-              } catch (error) {
-                console.warn('Failed to save welcome preference:', error);
-              }
-              setShowWelcome(false);
-              setShowMedicalDisclaimer(true);
-            }}
-            style={{
-              width: '100%',
-              padding: '12px',
-              backgroundColor: 'transparent',
-              color: '#667eea',
-              border: '2px solid #667eea',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseOver={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = '#667eea';
-              (e.target as HTMLButtonElement).style.color = 'white';
-            }}
-            onMouseOut={(e) => {
-              (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
-              (e.target as HTMLButtonElement).style.color = '#667eea';
-            }}
-          >
-            Skip for now - Use Basic Strengthening & Stretching Routine
-          </button>
+          {isNewUser ? (
+            // Buttons for new users
+            <>
+              <button
+                onClick={() => {
+                  setShowWelcome(false);
+                  setShowRoutineBuilder(true);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  backgroundColor: '#48bb78',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  marginBottom: '15px',
+                  boxShadow: '0 4px 8px rgba(72, 187, 120, 0.3)'
+                }}
+                onMouseOver={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#38a169';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#48bb78';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(0px)';
+                }}
+              >
+                🚀 Get Started - Create Your Exercise Routine
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowWelcome(false);
+                  setShowMedicalDisclaimer(true);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: 'transparent',
+                  color: '#667eea',
+                  border: '2px solid #667eea',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#667eea';
+                  (e.target as HTMLButtonElement).style.color = 'white';
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
+                  (e.target as HTMLButtonElement).style.color = '#667eea';
+                }}
+              >
+                Skip for now - Use Basic Strengthening & Stretching Routine
+              </button>
+            </>
+          ) : (
+            // Buttons for returning users
+            <>
+              <button
+                onClick={() => {
+                  setShowWelcome(false);
+                  // Go directly to main app for returning users
+                }}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  backgroundColor: '#48bb78',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  marginBottom: '15px',
+                  boxShadow: '0 4px 8px rgba(72, 187, 120, 0.3)'
+                }}
+                onMouseOver={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#38a169';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#48bb78';
+                  (e.target as HTMLButtonElement).style.transform = 'translateY(0px)';
+                }}
+              >
+                💪 Continue with My Routines
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowWelcome(false);
+                  setShowRoutineBuilder(true);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  backgroundColor: 'transparent',
+                  color: '#667eea',
+                  border: '2px solid #667eea',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = '#667eea';
+                  (e.target as HTMLButtonElement).style.color = 'white';
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.backgroundColor = 'transparent';
+                  (e.target as HTMLButtonElement).style.color = '#667eea';
+                }}
+              >
+                ➕ Create New Routine
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -1526,22 +1623,22 @@ Sent via Fysio - Your Personal Exercise Tracker`;
         
         {/* Logout Button - Top Right */}
         <div style={{ textAlign: 'right', marginBottom: '20px' }}>
-          <button
-            onClick={handleLogout}
-            style={{
+            <button
+              onClick={handleLogout}
+              style={{
               backgroundColor: '#dc2626',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
               padding: '8px 16px',
               fontSize: '0.85rem',
               cursor: 'pointer',
               fontWeight: '500'
-            }}
-          >
-            Logout
-          </button>
-        </div>
+              }}
+            >
+              Logout
+            </button>
+          </div>
 
         {/* App Title */}
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
@@ -1630,7 +1727,8 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                   borderRadius: '6px',
                   padding: '6px 12px',
                   fontSize: '0.85rem',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  marginRight: '8px'
                 }}
               >
                 🔄 Reset Changes
@@ -1909,19 +2007,19 @@ Sent via Fysio - Your Personal Exercise Tracker`;
           
           {allExercises.map((exercise: any) => (
             <div key={exercise.id}>
-              <ExerciseCard 
+          <ExerciseCard 
                 id={exercise.id}
                 emoji={getExerciseEmoji(exercise)}
                 title={exercise.name}
                 description={getExerciseDescription(exercise)}
                 placeholder={getExercisePlaceholder(exercise)}
                 isCompleted={completedExercises.includes(exercise.id)}
-                onComplete={markComplete}
+            onComplete={markComplete}
                 isNoteExpanded={expandedNotes[exercise.id] || false}
-                onToggleNote={toggleNoteSection}
+            onToggleNote={toggleNoteSection}
                 currentNote={currentNotes[exercise.id]}
-                onUpdateNote={updateCurrentNote}
-                onSaveNote={saveNote}
+            onUpdateNote={updateCurrentNote}
+            onSaveNote={saveNote}
                 previousNotes={exerciseNotes[exercise.id] || []}
               />
               
@@ -1965,8 +2063,8 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                           borderRadius: '4px',
                           fontSize: '0.85rem'
                         }}
-                      />
-                    </div>
+          />
+        </div>
 
                     {exercise.type === 'reps' ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -2119,8 +2217,8 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                     resize: 'vertical',
                     fontFamily: 'inherit'
                   }}
-                />
-              </div>
+          />
+        </div>
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button
