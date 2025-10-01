@@ -4,6 +4,257 @@ import AuthForm from './components/AuthForm';
 import RoutineBuilder from './components/RoutineBuilder';
 import ExerciseCard from './components/ExerciseCard';
 
+// Workout Calendar Component
+function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
+
+  // Get calendar data for current month
+  const getCalendarData = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay()); // Start from Sunday
+
+    const days = [];
+    const currentDay = new Date(startDate);
+
+    // Generate 42 days (6 weeks) for calendar grid
+    for (let i = 0; i < 42; i++) {
+      const dateStr = currentDay.toISOString().split('T')[0];
+      const workout = workoutHistory.find(w => w.date === dateStr);
+      
+      days.push({
+        date: new Date(currentDay),
+        dateStr,
+        workout,
+        isCurrentMonth: currentDay.getMonth() === month,
+        isToday: dateStr === new Date().toISOString().split('T')[0]
+      });
+      
+      currentDay.setDate(currentDay.getDate() + 1);
+    }
+
+    return days;
+  };
+
+  const calendarDays = getCalendarData();
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const navigateMonth = (direction: number) => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + direction);
+    setCurrentDate(newDate);
+    setSelectedWorkout(null);
+  };
+
+  return (
+    <div>
+      {/* Calendar Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <button
+          onClick={() => navigateMonth(-1)}
+          style={{
+            backgroundColor: '#667eea',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600'
+          }}
+        >
+          ← Previous
+        </button>
+        
+        <h2 style={{
+          margin: 0,
+          fontSize: '1.8rem',
+          fontWeight: '700',
+          color: '#1f2937'
+        }}>
+          {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+        </h2>
+        
+        <button
+          onClick={() => navigateMonth(1)}
+          style={{
+            backgroundColor: '#667eea',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600'
+          }}
+        >
+          Next →
+        </button>
+      </div>
+
+      {/* Calendar Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(7, 1fr)',
+        gap: '2px',
+        backgroundColor: '#e5e7eb',
+        borderRadius: '12px',
+        padding: '2px',
+        marginBottom: '20px'
+      }}>
+        {/* Day Headers */}
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <div key={day} style={{
+            backgroundColor: '#f3f4f6',
+            padding: '12px',
+            textAlign: 'center',
+            fontWeight: '600',
+            color: '#6b7280',
+            fontSize: '14px'
+          }}>
+            {day}
+          </div>
+        ))}
+
+        {/* Calendar Days */}
+        {calendarDays.map((day, index) => (
+          <div
+            key={index}
+            onClick={() => day.workout && setSelectedWorkout(day.workout)}
+            style={{
+              backgroundColor: day.isCurrentMonth ? 'white' : '#f9fafb',
+              padding: '12px',
+              minHeight: '80px',
+              cursor: day.workout ? 'pointer' : 'default',
+              border: day.isToday ? '2px solid #667eea' : 'none',
+              borderRadius: '8px',
+              position: 'relative',
+              opacity: day.isCurrentMonth ? 1 : 0.5
+            }}
+          >
+            <div style={{
+              fontSize: '14px',
+              fontWeight: day.isToday ? '700' : '500',
+              color: day.isToday ? '#667eea' : '#374151',
+              marginBottom: '4px'
+            }}>
+              {day.date.getDate()}
+            </div>
+            
+            {day.workout && (
+              <div style={{
+                backgroundColor: day.workout.completionPercentage === 100 ? '#10b981' : '#f59e0b',
+                color: 'white',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                fontSize: '10px',
+                fontWeight: '600',
+                textAlign: 'center'
+              }}>
+                {day.workout.completionPercentage}%
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Selected Workout Details */}
+      {selectedWorkout && (
+        <div style={{
+          backgroundColor: 'white',
+          border: '2px solid #667eea',
+          borderRadius: '12px',
+          padding: '20px',
+          marginTop: '20px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, color: '#1f2937', fontSize: '1.5rem' }}>
+              {new Date(selectedWorkout.date).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </h3>
+            <button
+              onClick={() => setSelectedWorkout(null)}
+              style={{
+                backgroundColor: '#6b7280',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+
+          <div style={{
+            backgroundColor: selectedWorkout.completionPercentage === 100 ? '#10b981' : '#f59e0b',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: '600',
+            display: 'inline-block',
+            marginBottom: '16px'
+          }}>
+            {selectedWorkout.completionPercentage}% Complete ({selectedWorkout.completedExercises.length}/{selectedWorkout.totalExercises} exercises)
+          </div>
+
+          {selectedWorkout.notes && (
+            <div style={{
+              backgroundColor: '#f3f4f6',
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '16px'
+            }}>
+              <strong>Workout Notes:</strong> {selectedWorkout.notes}
+            </div>
+          )}
+
+          {selectedWorkout.exerciseNotes && Object.keys(selectedWorkout.exerciseNotes).length > 0 && (
+            <div>
+              <h4 style={{ color: '#374151', marginBottom: '12px' }}>Exercise Notes:</h4>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {Object.entries(selectedWorkout.exerciseNotes).map(([exerciseId, notes]: [string, any]) => (
+                  notes && notes.length > 0 && (
+                    <div key={exerciseId} style={{
+                      backgroundColor: '#f0f9ff',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '6px',
+                      padding: '8px 12px',
+                      fontSize: '14px'
+                    }}>
+                      <strong>{exerciseId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}:</strong>
+                      <div style={{ marginTop: '4px', color: '#6b7280' }}>
+                        {notes.join(', ')}
+                      </div>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '16px' }}>
+            Completed at {new Date(selectedWorkout.completedAt).toLocaleTimeString()}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Main PT Exercise Tracker component
 function PTExerciseTrackerContent() {
   const { user, loading } = useAuth();
@@ -17,11 +268,14 @@ function PTExerciseTrackerContent() {
   const [completionNotes, setCompletionNotes] = useState('');
   const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [currentRoutine, setCurrentRoutine] = useState<any>(null);
   const [savedRoutines, setSavedRoutines] = useState<any[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [tempModifications, setTempModifications] = useState<{[key: string]: any}>({});
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
   
   // Stable first name extraction
   const userFirstName = useMemo(() => {
@@ -78,8 +332,7 @@ function PTExerciseTrackerContent() {
   useEffect(() => {
     if (user) {
       try {
-        // Always show welcome screen - but content will vary based on user history
-        setShowWelcome(true);
+        // Don't show welcome screen yet - wait for data to load first
         
         // Check if localStorage is corrupted and repair if needed
         try {
@@ -100,8 +353,44 @@ function PTExerciseTrackerContent() {
         try {
           loadWorkoutHistory();
           loadSavedRoutines();
+          setDataLoaded(true);
+          console.log('✅ Data loading completed successfully');
         } catch (error) {
           console.warn('Failed to load workout history or routines:', error);
+          // If loading fails due to corruption, treat as new user
+          setSavedRoutines([]);
+          setWorkoutHistory([]);
+          setDataLoaded(true);
+          console.log('⚠️ Data loading failed, adding demo data for presentation');
+          
+          // Add demo data for presentation purposes
+          const demoRoutines = [
+            {
+              id: 'demo-morning-mobility',
+              name: 'Morning Mobility',
+              exercises: [
+                { id: 'neck-rolls', name: 'Neck Rolls', category: 'Neck & Cervical', sets: 1, reps: 5, type: 'reps' },
+                { id: 'shoulder-shrugs', name: 'Shoulder Shrugs', category: 'Upper Body', sets: 2, reps: 10, type: 'reps' },
+                { id: 'arm-circles', name: 'Arm Circles', category: 'Upper Body', sets: 1, reps: 10, type: 'reps' }
+              ],
+              createdAt: new Date().toISOString(),
+              userId: user?.id
+            }
+          ];
+          
+          const demoHistory = [
+            {
+              id: 'demo-workout-1',
+              date: new Date().toISOString().split('T')[0],
+              completedExercises: ['neck-rolls', 'shoulder-shrugs'],
+              notes: 'Feeling good today!',
+              userId: user?.id
+            }
+          ];
+          
+          setSavedRoutines(demoRoutines);
+          setWorkoutHistory(demoHistory);
+          setCurrentRoutine(demoRoutines[0]);
         }
       } catch (error) {
         console.warn('localStorage access failed, showing welcome screen:', error);
@@ -110,6 +399,24 @@ function PTExerciseTrackerContent() {
       }
     }
   }, [user]);
+
+  // Show welcome screen after data loads (only for new users)
+  useEffect(() => {
+    if (user && dataLoaded && !welcomeDismissed) {
+      // Debug: Check what data we have
+      console.log('🔍 DEBUG: savedRoutines.length:', savedRoutines.length);
+      console.log('🔍 DEBUG: workoutHistory.length:', workoutHistory.length);
+      console.log('🔍 DEBUG: savedRoutines:', savedRoutines);
+      
+      // Only show welcome screen for truly new users (no routines, no history)
+      const isNewUser = savedRoutines.length === 0 && workoutHistory.length === 0;
+      console.log('🔍 DEBUG: isNewUser:', isNewUser);
+      
+      if (isNewUser) {
+        setShowWelcome(true);
+      }
+    }
+  }, [user, dataLoaded, welcomeDismissed, savedRoutines, workoutHistory]);
 
   // Save data whenever it changes - In future, sync with Supabase database
   useEffect(() => {
@@ -292,8 +599,23 @@ function PTExerciseTrackerContent() {
   const loadSavedRoutines = () => {
     try {
       console.log('🔍 Loading saved routines...');
-      const routines = JSON.parse(localStorage.getItem('fysio_routines') || '[]');
-      console.log('📦 All routines in localStorage:', routines);
+      
+      // Try localStorage first, then sessionStorage as fallback
+      let routines: any[] = [];
+      try {
+        routines = JSON.parse(localStorage.getItem('fysio_routines') || '[]');
+        console.log('📦 All routines in localStorage:', routines);
+      } catch (localStorageError) {
+        console.log('⚠️ localStorage failed, trying sessionStorage...');
+        try {
+          routines = JSON.parse(sessionStorage.getItem('fysio_routines') || '[]');
+          console.log('📦 All routines in sessionStorage:', routines);
+        } catch (sessionStorageError) {
+          console.log('❌ Both localStorage and sessionStorage failed');
+          routines = [];
+        }
+      }
+      
       console.log('👤 Current user ID:', user?.id);
       
       const userRoutines = routines.filter((routine: any) => routine.userId === user?.id);
@@ -314,7 +636,7 @@ function PTExerciseTrackerContent() {
         setCurrentRoutine(null);
       }
     } catch (error) {
-      console.error('💥 Failed to load saved routines from localStorage:', error);
+      console.error('💥 Failed to load saved routines:', error);
       setSavedRoutines([]);
       setCurrentRoutine(null);
     }
@@ -364,12 +686,30 @@ function PTExerciseTrackerContent() {
     basicRoutineExercises;
 
   // Apply temporary modifications if in edit mode
-  const allExercises = baseExercises.map((ex: any) => {
-    if (tempModifications[ex.id]) {
-      return { ...ex, ...tempModifications[ex.id] };
-    }
-    return ex;
-  });
+  const allExercises = baseExercises
+    .map((ex: any) => {
+      if (tempModifications[ex.id]) {
+        const modified = { ...ex, ...tempModifications[ex.id] };
+        console.log(`🔄 Modified exercise ${ex.id}:`, modified);
+        return modified;
+      }
+      return ex;
+    })
+    .filter((ex: any) => {
+      const shouldKeep = !ex.removed;
+      if (!shouldKeep) {
+        console.log(`❌ Filtering out removed exercise:`, ex.id);
+      }
+      return shouldKeep;
+    }) // Filter out removed exercises
+    .concat(
+      // Add new exercises from temp modifications
+      Object.values(tempModifications)
+        .filter((mod: any) => mod.added)
+        .map((mod: any) => ({ ...mod }))
+    );
+
+  console.log('📋 Final allExercises:', allExercises.map((ex: any) => ex.id));
 
   // Helper function to get exercise icon - simple and clean
   const getExerciseEmoji = (_exercise: any) => {
@@ -415,6 +755,96 @@ function PTExerciseTrackerContent() {
   const resetTempModifications = () => {
     setTempModifications({});
     setIsEditMode(false);
+  };
+
+  const deleteRoutine = (routineId: string, routineName: string) => {
+    // Ask for confirmation before deleting
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the routine "${routineName}"?\n\nThis action cannot be undone.`
+    );
+    
+    if (confirmDelete) {
+      try {
+        // Remove from savedRoutines
+        const updatedRoutines = savedRoutines.filter(routine => routine.id !== routineId);
+        setSavedRoutines(updatedRoutines);
+        
+        // If the deleted routine was the current one, switch to basic routine
+        if (currentRoutine && currentRoutine.id === routineId) {
+          setCurrentRoutine(null);
+          setCompletedExercises([]);
+        }
+        
+        // Update localStorage
+        const saveResult = saveWithFallback('fysio_routines', updatedRoutines);
+        
+        if (saveResult.success) {
+          alert(`✅ Routine "${routineName}" deleted successfully!`);
+        } else {
+          alert(`⚠️ Routine "${routineName}" deleted from this session, but couldn't be saved permanently.`);
+        }
+        
+      } catch (error) {
+        console.error('Error deleting routine:', error);
+        alert(`❌ Error deleting routine: ${error}. Please try again.`);
+      }
+    }
+  };
+
+  const removeExerciseFromRoutine = (exerciseId: string) => {
+    if (!isEditMode) return;
+    
+    console.log('🗑️ Removing exercise:', exerciseId);
+    
+    // Remove from temp modifications (this will hide it from the current session)
+    setTempModifications(prev => {
+      const newMods = {
+        ...prev,
+        [exerciseId]: { ...prev[exerciseId], removed: true }
+      };
+      console.log('🔧 Updated tempModifications:', newMods);
+      return newMods;
+    });
+  };
+
+  const addExerciseToRoutine = () => {
+    if (!isEditMode) return;
+    
+    // Simple exercise picker - in a real app this would be a modal with the full exercise list
+    const exerciseName = prompt('Enter exercise name:');
+    if (!exerciseName) return;
+    
+    const exerciseType = confirm('Is this a repetition-based exercise?\nOK = Reps, Cancel = Time-based') ? 'reps' : 'time';
+    
+    let sets = 1;
+    let reps = 10;
+    let duration = 30;
+    
+    if (exerciseType === 'reps') {
+      const setsInput = prompt('How many sets?', '2');
+      const repsInput = prompt('How many reps per set?', '10');
+      sets = parseInt(setsInput || '2');
+      reps = parseInt(repsInput || '10');
+    } else {
+      const setsInput = prompt('How many sets?', '2');
+      const durationInput = prompt('How many seconds per set?', '30');
+      sets = parseInt(setsInput || '2');
+      duration = parseInt(durationInput || '30');
+    }
+    
+    const newExercise = {
+      id: exerciseName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now(),
+      name: exerciseName,
+      category: 'Custom',
+      sets,
+      ...(exerciseType === 'reps' ? { reps, type: 'reps' } : { duration, type: 'time' })
+    };
+    
+    // Add to temp modifications
+    setTempModifications(prev => ({
+      ...prev,
+      [newExercise.id]: { ...newExercise, added: true }
+    }));
   };
 
   const toggleEditMode = () => {
@@ -996,6 +1426,63 @@ Sent via Fysio - Your Personal Exercise Tracker`;
     );
   }
 
+  // Show calendar view
+  if (showCalendar && user) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: '20px',
+          padding: '40px',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+          backdropFilter: 'blur(10px)'
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+            <h1 style={{
+              color: '#1a202c',
+              fontSize: '2.5rem',
+              fontWeight: '800',
+              margin: 0,
+              fontFamily: '"Montserrat", "Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+              backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              📅 Workout Calendar
+            </h1>
+            <button
+              onClick={() => setShowCalendar(false)}
+              style={{
+                backgroundColor: '#6b7280',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 20px',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              ← Back to Dashboard
+            </button>
+          </div>
+
+          {/* Calendar Component */}
+          <WorkoutCalendar workoutHistory={workoutHistory} />
+        </div>
+      </div>
+    );
+  }
+
   // Show routine builder
   if (showRoutineBuilder && user) {
     return (
@@ -1295,7 +1782,7 @@ Sent via Fysio - Your Personal Exercise Tracker`;
             margin: '0 0 30px 0'
           }}>
             {isNewUser 
-              ? 'Your personal exercise tracker designed to help you stay consistent with your physical therapy and fitness routines.'
+              ? 'Your personal PT exercise tracker designed to help you stay consistent with your physical therapy and fitness routines.'
               : 'Ready to continue your fitness journey? Choose how you\'d like to proceed with your exercises today.'
             }
           </p>
@@ -1430,7 +1917,9 @@ Sent via Fysio - Your Personal Exercise Tracker`;
               <button
                 onClick={() => {
                   setShowWelcome(false);
-                  // Go directly to main app for returning users
+                  setWelcomeDismissed(true); // Mark welcome as dismissed
+                  setDataLoaded(true); // Ensure data is marked as loaded
+                  // Go directly to main app for returning users - no other screens needed
                 }}
                 style={{
                   width: '100%',
@@ -1717,6 +2206,38 @@ Sent via Fysio - Your Personal Exercise Tracker`;
             >
               {isEditMode ? '✏️ Exit Edit Mode' : '✏️ Edit Routine'}
             </button>
+            <button
+              onClick={() => setShowRoutineBuilder(true)}
+              style={{
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                marginRight: '8px'
+              }}
+            >
+              ➕ Create New Routine
+            </button>
+            {currentRoutine && (
+              <button
+                onClick={() => deleteRoutine(currentRoutine.id, currentRoutine.name)}
+                style={{
+                  backgroundColor: '#e53e3e',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  marginRight: '8px'
+                }}
+              >
+                🗑️ Delete Routine
+              </button>
+            )}
             {isEditMode && Object.keys(tempModifications).length > 0 && (
               <button
                 onClick={resetTempModifications}
@@ -1732,6 +2253,23 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                 }}
               >
                 🔄 Reset Changes
+              </button>
+            )}
+            {isEditMode && (
+              <button
+                onClick={addExerciseToRoutine}
+                style={{
+                  backgroundColor: '#48bb78',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  marginRight: '8px'
+                }}
+              >
+                ➕ Add Exercise
               </button>
             )}
           </div>
@@ -1760,38 +2298,46 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                 Basic Routine
               </button>
               {savedRoutines.map((routine: any) => (
-                <button
+                <div
                   key={routine.id}
-                  onClick={() => {
-                    setCurrentRoutine(routine);
-                    setCompletedExercises([]);
-                    // Exit edit mode when switching routines
-                    setIsEditMode(false);
-                    setTempModifications({});
-                    // Initialize exercise notes for custom routine (merge with existing)
-                    const newExerciseNotes: {[key: string]: any[]} = { ...exerciseNotes };
-                    routine.exercises.forEach((ex: any) => {
-                      const exerciseId = ex.id || ex.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-                      if (!newExerciseNotes[exerciseId]) {
-                        newExerciseNotes[exerciseId] = [];
-                      }
-                    });
-                    setExerciseNotes(newExerciseNotes);
-                  }}
                   style={{
-                    backgroundColor: currentRoutine?.id === routine.id ? '#667eea' : '#e2e8f0',
-                    color: currentRoutine?.id === routine.id ? 'white' : '#4a5568',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                     marginRight: '8px',
                     marginTop: '4px'
                   }}
                 >
-                  {routine.name}
-                </button>
+                  <button
+                    onClick={() => {
+                      setCurrentRoutine(routine);
+                      setCompletedExercises([]);
+                      // Exit edit mode when switching routines
+                      setIsEditMode(false);
+                      setTempModifications({});
+                      // Initialize exercise notes for custom routine (merge with existing)
+                      const newExerciseNotes: {[key: string]: any[]} = { ...exerciseNotes };
+                      routine.exercises.forEach((ex: any) => {
+                        const exerciseId = ex.id || ex.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                        if (!newExerciseNotes[exerciseId]) {
+                          newExerciseNotes[exerciseId] = [];
+                        }
+                      });
+                      setExerciseNotes(newExerciseNotes);
+                    }}
+                    style={{
+                      backgroundColor: currentRoutine?.id === routine.id ? '#667eea' : '#e2e8f0',
+                      color: currentRoutine?.id === routine.id ? 'white' : '#4a5568',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px 12px',
+                      fontSize: '0.9rem',
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                  >
+                    {routine.name}
+                  </button>
+                </div>
               ))}
             </div>
           )}
@@ -1938,6 +2484,72 @@ Sent via Fysio - Your Personal Exercise Tracker`;
               {workoutHistory.length > 0 ? `${overallAdherence}%` : 'Complete workouts to see grade'}
             </div>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '12px',
+          marginBottom: '30px'
+        }}>
+          <button
+            onClick={() => setShowCalendar(true)}
+            style={{
+              backgroundColor: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '16px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+            onMouseOver={(e) => {
+              (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLButtonElement).style.boxShadow = '0 8px 16px rgba(102, 126, 234, 0.3)';
+            }}
+            onMouseOut={(e) => {
+              (e.target as HTMLButtonElement).style.transform = 'translateY(0px)';
+              (e.target as HTMLButtonElement).style.boxShadow = 'none';
+            }}
+          >
+            📅 View Calendar
+          </button>
+          
+          <button
+            onClick={generateProgressReport}
+            style={{
+              backgroundColor: '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '16px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+            onMouseOver={(e) => {
+              (e.target as HTMLButtonElement).style.transform = 'translateY(-2px)';
+              (e.target as HTMLButtonElement).style.boxShadow = '0 8px 16px rgba(16, 185, 129, 0.3)';
+            }}
+            onMouseOut={(e) => {
+              (e.target as HTMLButtonElement).style.transform = 'translateY(0px)';
+              (e.target as HTMLButtonElement).style.boxShadow = 'none';
+            }}
+          >
+            📤 Share Progress
+          </button>
         </div>
 
         {/* Progress Bar */}
@@ -2114,6 +2726,23 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                         Modified ✓
                       </span>
                     )}
+                    
+                    <button
+                      onClick={() => removeExerciseFromRoutine(exercise.id)}
+                      style={{
+                        backgroundColor: '#e53e3e',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        marginLeft: 'auto'
+                      }}
+                      title={`Remove "${exercise.name}" from routine`}
+                    >
+                      🗑️ Remove
+                    </button>
                   </div>
                 </div>
               )}

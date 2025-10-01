@@ -6,13 +6,17 @@ const PT_EXERCISES = {
     "Shoulder Blade Squeezes", "Wall Push-ups", "Arm Circles", "Shoulder Shrugs", 
     "Bicep Curls", "Tricep Extensions", "Lateral Raises", "Front Raises",
     "Resistance Band Pull-Aparts", "Doorway Chest Stretch", "Overhead Press",
-    "Bent-Over Rows", "Wrist Flexor Stretch", "Wrist Extensor Stretch"
+    "Bent-Over Rows", "Wrist Flexor Stretch", "Wrist Extensor Stretch",
+    "Push-ups", "Modified Push-ups", "Chest Fly", "Reverse Fly", "Upright Rows",
+    "Shoulder External Rotation", "Shoulder Internal Rotation", "Serratus Punches"
   ],
   "Lower Body Strengthening": [
     "Squats", "Lunges", "Calf Raises", "Glute Bridges", "Step-Ups", 
     "Single-Leg Stands", "Heel-to-Toe Walking", "Side-Lying Leg Lifts",
     "Clamshells", "Wall Sits", "Leg Press", "Hamstring Curls", "Quad Sets",
-    "Straight Leg Raises", "Hip Abductions", "Hip Adductions"
+    "Straight Leg Raises", "Hip Abductions", "Hip Adductions", "Goblet Squats",
+    "Bulgarian Split Squats", "Lateral Lunges", "Reverse Lunges", "Deadlifts",
+    "Single-Leg Deadlifts", "Monster Walks", "Fire Hydrants", "Donkey Kicks"
   ],
   "Core Strengthening": [
     "Planks", "Side Planks", "Dead Bug", "Bird Dog", "Modified Crunches",
@@ -62,7 +66,33 @@ const PT_EXERCISES = {
   ],
   "Cardiovascular": [
     "Walking", "Stationary Bike", "Elliptical", "Swimming", "Water Walking",
-    "Arm Bike", "Seated Marching", "Step-Ups", "Recumbent Bike"
+    "Arm Bike", "Seated Marching", "Step-Ups", "Recumbent Bike", "Treadmill Walking",
+    "Pool Walking", "Chair Exercises", "Tai Chi", "Low-Impact Aerobics"
+  ],
+  "Hip Rehabilitation": [
+    "Hip Flexor Stretch", "Hip Abduction", "Hip Adduction", "Clamshells",
+    "Hip Circles", "Hip Bridges", "Side-Lying Hip Lifts", "Standing Hip Flexion",
+    "Hip Internal Rotation", "Hip External Rotation", "Pigeon Pose", "90/90 Stretch"
+  ],
+  "Posture & Ergonomics": [
+    "Wall Angels", "Doorway Chest Stretch", "Chin Tucks", "Shoulder Blade Squeezes",
+    "Upper Trap Stretch", "Levator Scapulae Stretch", "Thoracic Extension",
+    "Cat-Cow Stretch", "Seated Spinal Twist", "Neck Side Bends", "Forward Head Correction"
+  ],
+  "Sports-Specific": [
+    "Agility Ladder", "Cone Drills", "Plyometric Jumps", "Sport-Specific Movements",
+    "Reaction Time Drills", "Cutting Movements", "Deceleration Training",
+    "Jump Training", "Landing Mechanics", "Change of Direction"
+  ],
+  "Geriatric Specialties": [
+    "Chair Stands", "Bed Mobility", "Transfer Training", "Fall Prevention",
+    "Gait Training", "Stair Climbing", "Balance Training", "Functional Reaching",
+    "Sit-to-Stand", "Standing Tolerance", "Walking Endurance", "Safety Awareness"
+  ],
+  "Neurological": [
+    "Gait Training", "Balance Retraining", "Coordination Exercises", "Fine Motor Skills",
+    "Gross Motor Skills", "Dual-Task Training", "Cognitive-Motor Integration",
+    "Vestibular Training", "Visual Tracking", "Proprioceptive Training"
   ]
 };
 
@@ -95,6 +125,15 @@ export default function RoutineBuilder({ onSaveRoutine, onCancel }: RoutineBuild
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedExercise, setSelectedExercise] = useState('');
   
+  // Custom exercise creation states
+  const [showCustomExercise, setShowCustomExercise] = useState(false);
+  const [customExerciseName, setCustomExerciseName] = useState('');
+  const [customExerciseType, setCustomExerciseType] = useState<'reps' | 'time'>('reps');
+  const [customSets, setCustomSets] = useState(2);
+  const [customReps, setCustomReps] = useState(10);
+  const [customDuration, setCustomDuration] = useState(30);
+  const [customNotes, setCustomNotes] = useState('');
+  
 
   const addExercise = () => {
     if (!selectedExercise || !selectedCategory) return;
@@ -114,6 +153,31 @@ export default function RoutineBuilder({ onSaveRoutine, onCancel }: RoutineBuild
 
     setSelectedExercises([...selectedExercises, newExercise]);
     setSelectedExercise('');
+  };
+
+  const addCustomExercise = () => {
+    if (!customExerciseName.trim()) return;
+
+    const newCustomExercise: Exercise = {
+      name: customExerciseName.trim(),
+      category: 'Custom',
+      type: customExerciseType,
+      sets: customSets,
+      reps: customExerciseType === 'reps' ? customReps : undefined,
+      duration: customExerciseType === 'time' ? customDuration : undefined,
+      notes: customNotes.trim()
+    };
+
+    setSelectedExercises([...selectedExercises, newCustomExercise]);
+    
+    // Reset custom exercise form
+    setCustomExerciseName('');
+    setCustomExerciseType('reps');
+    setCustomSets(2);
+    setCustomReps(10);
+    setCustomDuration(30);
+    setCustomNotes('');
+    setShowCustomExercise(false);
   };
 
   const updateExercise = (index: number, field: keyof Exercise, value: any) => {
@@ -347,6 +411,169 @@ export default function RoutineBuilder({ onSaveRoutine, onCancel }: RoutineBuild
               Add
             </button>
           </div>
+        </div>
+
+        {/* Custom Exercise Section */}
+        <div style={{
+          backgroundColor: '#f0f9ff',
+          padding: '24px',
+          borderRadius: '12px',
+          marginBottom: '30px',
+          border: '1px solid #bae6fd'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0, color: '#374151' }}>🎯 Create Custom Exercise</h3>
+            <button
+              onClick={() => setShowCustomExercise(!showCustomExercise)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: showCustomExercise ? '#ef4444' : '#0ea5e9',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                fontSize: '14px'
+              }}
+            >
+              {showCustomExercise ? '✕ Cancel' : '+ Create Custom'}
+            </button>
+          </div>
+
+          {showCustomExercise && (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {/* Exercise Name */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', color: '#374151' }}>
+                  Exercise Name *
+                </label>
+                <input
+                  type="text"
+                  value={customExerciseName}
+                  onChange={(e) => setCustomExerciseName(e.target.value)}
+                  placeholder="e.g., Resistance Band Shoulder Pulls, Custom Stretch"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+
+              {/* Exercise Type */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', color: '#374151' }}>
+                    Exercise Type *
+                  </label>
+                  <select
+                    value={customExerciseType}
+                    onChange={(e) => setCustomExerciseType(e.target.value as 'reps' | 'time')}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="reps">Reps & Sets</option>
+                    <option value="time">Time & Sets</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', color: '#374151' }}>
+                    Sets
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={customSets}
+                    onChange={(e) => setCustomSets(parseInt(e.target.value) || 1)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', color: '#374151' }}>
+                    {customExerciseType === 'reps' ? 'Reps per Set' : 'Seconds per Set'}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={customExerciseType === 'reps' ? "100" : "300"}
+                    value={customExerciseType === 'reps' ? customReps : customDuration}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value) || 1;
+                      if (customExerciseType === 'reps') {
+                        setCustomReps(value);
+                      } else {
+                        setCustomDuration(value);
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', color: '#374151' }}>
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={customNotes}
+                  onChange={(e) => setCustomNotes(e.target.value)}
+                  placeholder="e.g., Use light resistance, focus on form, hold stretch gently"
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              {/* Add Custom Exercise Button */}
+              <div style={{ textAlign: 'right' }}>
+                <button
+                  onClick={addCustomExercise}
+                  disabled={!customExerciseName.trim()}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: customExerciseName.trim() ? '#0ea5e9' : '#d1d5db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: customExerciseName.trim() ? 'pointer' : 'not-allowed',
+                    fontWeight: '600',
+                    fontSize: '14px'
+                  }}
+                >
+                  ✅ Add Custom Exercise
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Selected Exercises List */}

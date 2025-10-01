@@ -273,7 +273,6 @@ function AuthForm({ onSwitchMode, isLogin, onSignupSuccess }: AuthFormProps) {
               <li>Click the link to confirm</li>
               <li>Then you can sign in here</li>
             </ol>
-            <em>For development, you can disable this in Supabase Settings → Authentication!</em>
           </div>
         )}
 
