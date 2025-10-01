@@ -2519,7 +2519,7 @@ Sent via Fysio - Your Personal Exercise Tracker`;
               (e.target as HTMLButtonElement).style.boxShadow = 'none';
             }}
           >
-            📅 View Calendar
+            📅 View Workout History
           </button>
           
           <button
@@ -2618,7 +2618,7 @@ Sent via Fysio - Your Personal Exercise Tracker`;
           )}
           
           {allExercises.map((exercise: any) => (
-            <div key={exercise.id}>
+            <div key={`${exercise.id}-${Object.keys(tempModifications).length}-${isEditMode ? 'edit' : 'normal'}`}>
           <ExerciseCard 
                 id={exercise.id}
                 emoji={getExerciseEmoji(exercise)}
