@@ -237,7 +237,11 @@ function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
                     }}>
                       <strong>{exerciseId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}:</strong>
                       <div style={{ marginTop: '4px', color: '#6b7280' }}>
-                        {notes.join(', ')}
+                        {notes.map((note: any, index: number) => (
+                          <div key={index} style={{ marginBottom: index < notes.length - 1 ? '4px' : '0' }}>
+                            <strong>{note.date}:</strong> {note.text}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )
@@ -866,13 +870,25 @@ function PTExerciseTrackerContent() {
   const calculateAdherence = () => {
     if (workoutHistory.length === 0) return { weekly: 0, overall: 0 };
     
-    // Weekly adherence (last 7 days)
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    // Weekly adherence - based on days active this week, not arbitrary 7 days
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
+    
     const weeklyWorkouts = workoutHistory.filter(workout => 
-      new Date(workout.date) >= oneWeekAgo
+      new Date(workout.date) >= startOfWeek
     );
-    const weeklyAdherence = workoutHistory.length > 0 ? Math.min((weeklyWorkouts.length / 7) * 100, 100) : 0;
+    
+    // Count unique days with workouts this week
+    const uniqueWorkoutDays = new Set(
+      weeklyWorkouts.map(workout => workout.date)
+    ).size;
+    
+    // Count days from start of week to today (minimum 1 day)
+    const daysIntoWeek = Math.max(1, today.getDay() + 1); // Sunday = 1, Monday = 2, etc.
+    
+    const weeklyAdherence = workoutHistory.length > 0 ? 
+      Math.min((uniqueWorkoutDays / daysIntoWeek) * 100, 100) : 0;
     
     // Overall adherence (since first workout)
     const firstWorkout = workoutHistory.length > 0 ? new Date(workoutHistory[0].date) : new Date();
@@ -930,15 +946,13 @@ function PTExerciseTrackerContent() {
   };
   
   const getLetterGrade = (percentage: number) => {
-    if (percentage >= 95) return { grade: 'A+', color: '#22543d' };
-    if (percentage >= 90) return { grade: 'A', color: '#22543d' };
-    if (percentage >= 85) return { grade: 'A-', color: '#2f855a' };
-    if (percentage >= 80) return { grade: 'B+', color: '#38a169' };
-    if (percentage >= 75) return { grade: 'B', color: '#48bb78' };
-    if (percentage >= 70) return { grade: 'B-', color: '#68d391' };
-    if (percentage >= 65) return { grade: 'C+', color: '#ed8936' };
-    if (percentage >= 60) return { grade: 'C', color: '#dd6b20' };
-    return { grade: 'F', color: '#e53e3e' };
+    if (percentage >= 90) return { grade: '🏆 Champion', color: '#22543d' };
+    if (percentage >= 80) return { grade: '⭐ Strong', color: '#2f855a' };
+    if (percentage >= 70) return { grade: '💪 Steady', color: '#38a169' };
+    if (percentage >= 60) return { grade: '🎯 Focused', color: '#48bb78' };
+    if (percentage >= 40) return { grade: '🌱 Growing', color: '#ed8936' };
+    if (percentage >= 20) return { grade: '🚀 Rising', color: '#dd6b20' };
+    return { grade: '✨ Starting', color: '#667eea' };
   };
   
   const weeklyGrade = workoutHistory.length > 0 ? getLetterGrade(weeklyAdherence) : { grade: '--', color: '#9ca3af' };
@@ -948,18 +962,18 @@ function PTExerciseTrackerContent() {
     setCurrentNotes(prev => ({
       ...prev,
       [exerciseId]: {
-        ...prev[exerciseId],
+        ...(prev[exerciseId] || { text: '', date: new Date().toISOString().split('T')[0] }),
         [field]: value
       }
     }));
   };
   
   const saveNote = (exerciseId: string) => {
-    const note = currentNotes[exerciseId];
+    const note = currentNotes[exerciseId] || { text: '', date: new Date().toISOString().split('T')[0] };
     if (note.text.trim()) {
       setExerciseNotes(prev => ({
         ...prev,
-        [exerciseId]: [...prev[exerciseId], note]
+        [exerciseId]: [...(prev[exerciseId] || []), note]
       }));
       setCurrentNotes(prev => ({
         ...prev,
@@ -1460,7 +1474,11 @@ Sent via Fysio - Your Personal Exercise Tracker`;
               📅 Workout Calendar
             </h1>
             <button
-              onClick={() => setShowCalendar(false)}
+              onClick={() => {
+                setShowCalendar(false);
+                setWelcomeDismissed(true);
+                setShowWelcome(false);
+              }}
               style={{
                 backgroundColor: '#6b7280',
                 color: 'white',
@@ -2629,7 +2647,7 @@ Sent via Fysio - Your Personal Exercise Tracker`;
             onComplete={markComplete}
                 isNoteExpanded={expandedNotes[exercise.id] || false}
             onToggleNote={toggleNoteSection}
-                currentNote={currentNotes[exercise.id]}
+                currentNote={currentNotes[exercise.id] || { text: '', date: new Date().toISOString().split('T')[0] }}
             onUpdateNote={updateCurrentNote}
             onSaveNote={saveNote}
                 previousNotes={exerciseNotes[exercise.id] || []}
