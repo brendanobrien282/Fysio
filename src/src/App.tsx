@@ -539,6 +539,20 @@ function PTExerciseTrackerContent() {
     if (completedCount < totalCount) {
       // Show warning dialog
       setShowCompletionDialog(true);
+      // Scroll to position where modal will be perfectly centered
+      setTimeout(() => {
+        const documentHeight = document.documentElement.scrollHeight;
+        const windowHeight = window.innerHeight;
+        
+        // Calculate the scroll position that puts the modal center in the middle of viewport
+        const modalCenterPosition = documentHeight / 2; // Modal appears at 50% of document height
+        const idealScrollPosition = modalCenterPosition - (windowHeight / 2); // Center it in viewport
+        
+        window.scrollTo({
+          top: Math.max(0, idealScrollPosition),
+          behavior: 'smooth'
+        });
+      }, 100); // Small delay to ensure modal is rendered
     } else {
       // Complete workout directly
       completeWorkout();
@@ -2599,6 +2613,28 @@ Sent via Fysio - Your Personal Exercise Tracker`;
               transition: 'width 0.3s ease'
             }} />
           </div>
+          
+          {/* Prominent warning for incomplete workout - right after progress bar */}
+          {completedExercises.length < allExercises.length && completedExercises.length > 0 && (
+            <div style={{
+              backgroundColor: '#fef3c7',
+              border: '2px solid #f59e0b',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              marginTop: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.2)'
+            }}>
+              <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+              <span style={{ color: '#92400e', fontWeight: '600', fontSize: '14px', textAlign: 'center' }}>
+                {allExercises.length - completedExercises.length} exercise{allExercises.length - completedExercises.length !== 1 ? 's' : ''} remaining! 
+                Remember to complete all exercises before finishing your workout.
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Dynamic Exercise List */}
@@ -2783,6 +2819,7 @@ Sent via Fysio - Your Personal Exercise Tracker`;
           <p style={{ color: '#6b7280', margin: '0 0 20px 0', fontSize: '14px' }}>
             {completedExercises.length} of {allExercises.length} exercises completed ({Math.round((completedExercises.length / allExercises.length) * 100)}%)
           </p>
+          
           <button
             onClick={handleCompleteWorkout}
             style={{
@@ -2813,25 +2850,33 @@ Sent via Fysio - Your Personal Exercise Tracker`;
 
         {/* Completion Dialog */}
         {showCompletionDialog && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
+          <>
+            {/* Backdrop */}
             <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 999
+            }}></div>
+            
+            {/* Modal */}
+            <div style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
               backgroundColor: 'white',
               borderRadius: '16px',
               padding: '32px',
               maxWidth: '500px',
               width: '90%',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)'
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
+              zIndex: 1000
             }}>
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⚠️</div>
@@ -2903,7 +2948,7 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                 </button>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Completion Message */}
