@@ -19,10 +19,18 @@ function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
 
     const days = [];
     const currentDay = new Date(startDate);
+    
+    // Get today's date in local timezone (same format as workout saving)
+    const today = new Date();
+    const todayString = today.getFullYear() + '-' + 
+      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+      String(today.getDate()).padStart(2, '0');
 
     // Generate 42 days (6 weeks) for calendar grid
     for (let i = 0; i < 42; i++) {
-      const dateStr = currentDay.toISOString().split('T')[0];
+      const dateStr = currentDay.getFullYear() + '-' + 
+        String(currentDay.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(currentDay.getDate()).padStart(2, '0');
       const workout = workoutHistory.find(w => w.date === dateStr);
       
       days.push({
@@ -30,7 +38,7 @@ function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
         dateStr,
         workout,
         isCurrentMonth: currentDay.getMonth() === month,
-        isToday: dateStr === new Date().toISOString().split('T')[0]
+        isToday: dateStr === todayString
       });
       
       currentDay.setDate(currentDay.getDate() + 1);
@@ -175,12 +183,17 @@ function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h3 style={{ margin: 0, color: '#1f2937', fontSize: '1.5rem' }}>
-              {new Date(selectedWorkout.date).toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+              {(() => {
+                // Parse date string properly to avoid timezone issues
+                const [year, month, day] = selectedWorkout.date.split('-').map(Number);
+                const localDate = new Date(year, month - 1, day); // month is 0-indexed
+                return localDate.toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                });
+              })()}
             </h3>
             <button
               onClick={() => setSelectedWorkout(null)}
@@ -561,9 +574,15 @@ function PTExerciseTrackerContent() {
 
   const completeWorkout = () => {
     try {
+      // Get today's date in local timezone (not UTC)
+      const today = new Date();
+      const localDateString = today.getFullYear() + '-' + 
+        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(today.getDate()).padStart(2, '0');
+      
       const workoutData = {
         id: Date.now().toString(),
-        date: new Date().toISOString().split('T')[0],
+        date: localDateString,
         completedExercises: [...completedExercises],
         totalExercises: allExercises.length,
         completionPercentage: Math.round((completedExercises.length / allExercises.length) * 100),
@@ -572,6 +591,8 @@ function PTExerciseTrackerContent() {
         userId: user?.id,
         completedAt: new Date().toISOString()
       };
+
+      console.log('💾 Saving workout with date:', localDateString, 'and exercise notes:', exerciseNotes);
 
       // Try to save to localStorage with error handling
       try {
@@ -1408,12 +1429,17 @@ Sent via Fysio - Your Personal Exercise Tracker`;
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <h3 style={{ margin: 0, color: '#1f2937' }}>
-                      {new Date(workout.date).toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
+                      {(() => {
+                        // Parse date string properly to avoid timezone issues
+                        const [year, month, day] = workout.date.split('-').map(Number);
+                        const localDate = new Date(year, month - 1, day); // month is 0-indexed
+                        return localDate.toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        });
+                      })()}
                     </h3>
                     <div style={{
                       backgroundColor: workout.completionPercentage === 100 ? '#10b981' : '#f59e0b',
