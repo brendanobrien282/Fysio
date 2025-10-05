@@ -5,9 +5,176 @@ import RoutineBuilder from './components/RoutineBuilder';
 import ExerciseCard from './components/ExerciseCard';
 
 // Workout Calendar Component
-function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
+function WorkoutCalendar({ workoutHistory, onUpdateWorkoutHistory }: { workoutHistory: any[], onUpdateWorkoutHistory: (newHistory: any[]) => void }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
+  const [editingNotes, setEditingNotes] = useState<{[key: string]: boolean}>({});
+  const [editedNotes, setEditedNotes] = useState<{[key: string]: string}>({});
+  const [editingGeneralNote, setEditingGeneralNote] = useState(false);
+  const [editedGeneralNote, setEditedGeneralNote] = useState('');
+  const [showCompletionTooltip, setShowCompletionTooltip] = useState(false);
+
+  // Function to get exercise completion details for tooltip
+  const getExerciseCompletionDetails = (workout: any) => {
+    console.log('🔍 Getting completion details for workout:', workout);
+    
+    if (!workout) return [];
+    
+    // Try different possible data structures
+    let exercises = [];
+    if (workout.routine && workout.routine.exercises) {
+      exercises = workout.routine.exercises;
+    } else if (workout.exercises) {
+      exercises = workout.exercises;
+    } else if (workout.allExercises) {
+      exercises = workout.allExercises;
+    }
+    
+    console.log('📋 Found exercises:', exercises);
+    console.log('✅ Completed exercises:', workout.completedExercises);
+    
+    if (!exercises || exercises.length === 0) return [];
+    
+    const details = exercises.map((exercise: any) => {
+      // Try multiple ways to match completed exercises
+      const exerciseId = exercise.id || exercise.name || exercise.title;
+      const exerciseName = exercise.name || exercise.title || exercise.id;
+      
+      // Check if this exercise was completed by trying different matching strategies
+      const isCompleted = workout.completedExercises.includes(exerciseId) ||
+                         workout.completedExercises.includes(exerciseName) ||
+                         workout.completedExercises.includes(exercise.id) ||
+                         workout.completedExercises.includes(exercise.name);
+      
+      return {
+        name: exerciseName,
+        isCompleted: isCompleted
+      };
+    }).sort((a: any, b: any) => a.name.localeCompare(b.name)); // Sort alphabetically
+    
+    console.log('📊 Exercise details:', details);
+    return details;
+  };
+
+  // Functions for editing notes
+  const startEditingNote = (exerciseId: string, currentNote: string) => {
+    setEditingNotes(prev => ({ ...prev, [exerciseId]: true }));
+    setEditedNotes(prev => ({ ...prev, [exerciseId]: currentNote }));
+  };
+
+  const startEditingGeneralNote = (currentNote: string) => {
+    setEditingGeneralNote(true);
+    setEditedGeneralNote(currentNote || '');
+  };
+
+  const cancelEditingNote = (exerciseId: string) => {
+    setEditingNotes(prev => ({ ...prev, [exerciseId]: false }));
+    setEditedNotes(prev => {
+      const newNotes = { ...prev };
+      delete newNotes[exerciseId];
+      return newNotes;
+    });
+  };
+
+  const cancelEditingGeneralNote = () => {
+    setEditingGeneralNote(false);
+    setEditedGeneralNote('');
+  };
+
+  const saveEditedNote = (exerciseId: string, noteIndex: number) => {
+    const noteKey = `${exerciseId}-${noteIndex}`;
+    console.log('🔧 Saving note:', { exerciseId, noteIndex, noteKey, editedText: editedNotes[noteKey] });
+    
+    if (!selectedWorkout || !editedNotes[noteKey]) {
+      console.log('❌ Save failed - missing data:', { selectedWorkout: !!selectedWorkout, hasEditedNote: !!editedNotes[noteKey] });
+      return;
+    }
+    
+    const updatedHistory = workoutHistory.map(workout => {
+      if (workout.date === selectedWorkout.date) {
+        const updatedWorkout = { ...workout };
+        if (updatedWorkout.exerciseNotes && updatedWorkout.exerciseNotes[exerciseId]) {
+          updatedWorkout.exerciseNotes[exerciseId][noteIndex].text = editedNotes[noteKey];
+          console.log('✅ Note updated in workout:', updatedWorkout.exerciseNotes[exerciseId][noteIndex]);
+        }
+        return updatedWorkout;
+      }
+      return workout;
+    });
+    
+    // Only update through the main callback to avoid duplicates
+    onUpdateWorkoutHistory(updatedHistory);
+    
+    // Update selectedWorkout to match the updated workout
+    const updatedWorkout = updatedHistory.find(w => w.date === selectedWorkout.date);
+    if (updatedWorkout) {
+      setSelectedWorkout(updatedWorkout);
+    }
+    
+    cancelEditingNote(noteKey);
+  };
+
+  const saveEditedGeneralNote = () => {
+    console.log('🔧 Saving general note:', { editedGeneralNote, selectedWorkout: !!selectedWorkout });
+    
+    if (!selectedWorkout) return;
+    
+    const updatedHistory = workoutHistory.map(workout => {
+      if (workout.date === selectedWorkout.date) {
+        return { ...workout, notes: editedGeneralNote };
+      }
+      return workout;
+    });
+    
+    // Only update through the main callback to avoid duplicates
+    onUpdateWorkoutHistory(updatedHistory);
+    
+    // Update selectedWorkout to match the updated workout
+    const updatedWorkout = updatedHistory.find(w => w.date === selectedWorkout.date);
+    if (updatedWorkout) {
+      setSelectedWorkout(updatedWorkout);
+    }
+    
+    cancelEditingGeneralNote();
+    console.log('✅ General note saved successfully');
+  };
+
+  const addNewNote = (exerciseId: string) => {
+    console.log('🔧 Adding new note for:', exerciseId);
+    
+    if (!selectedWorkout) return;
+    
+    const newNote = {
+      text: '',
+      date: new Date().toISOString().split('T')[0]
+    };
+    
+    const updatedHistory = workoutHistory.map(workout => {
+      if (workout.date === selectedWorkout.date) {
+        const updatedWorkout = { ...workout };
+        if (!updatedWorkout.exerciseNotes) updatedWorkout.exerciseNotes = {};
+        if (!updatedWorkout.exerciseNotes[exerciseId]) updatedWorkout.exerciseNotes[exerciseId] = [];
+        updatedWorkout.exerciseNotes[exerciseId].push(newNote);
+        return updatedWorkout;
+      }
+      return workout;
+    });
+    
+    // Only update through the main callback to avoid duplicates
+    onUpdateWorkoutHistory(updatedHistory);
+    
+    // Update selectedWorkout to match the updated workout
+    const updatedWorkout = updatedHistory.find(w => w.date === selectedWorkout.date);
+    if (updatedWorkout) {
+      setSelectedWorkout(updatedWorkout);
+    }
+    
+    // Start editing the new note immediately with correct key format
+    const newNoteIndex = (selectedWorkout.exerciseNotes?.[exerciseId]?.length || 0);
+    const noteKey = `${exerciseId}-${newNoteIndex}`;
+    console.log('✅ New note added, starting edit with key:', noteKey);
+    startEditingNote(noteKey, '');
+  };
 
   // Get calendar data for current month
   const getCalendarData = () => {
@@ -211,17 +378,98 @@ function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
             </button>
           </div>
 
-          <div style={{
-            backgroundColor: selectedWorkout.completionPercentage === 100 ? '#10b981' : '#f59e0b',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '20px',
-            fontSize: '14px',
-            fontWeight: '600',
-            display: 'inline-block',
-            marginBottom: '16px'
-          }}>
-            {selectedWorkout.completionPercentage}% Complete ({selectedWorkout.completedExercises.length}/{selectedWorkout.totalExercises} exercises)
+          <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
+            <div 
+              style={{
+                backgroundColor: selectedWorkout.completionPercentage === 100 ? '#10b981' : '#f59e0b',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'inline-block',
+                cursor: 'help'
+              }}
+              onMouseEnter={() => setShowCompletionTooltip(true)}
+              onMouseLeave={() => setShowCompletionTooltip(false)}
+            >
+              {selectedWorkout.completionPercentage}% Complete ({selectedWorkout.completedExercises.length}/{selectedWorkout.totalExercises} exercises)
+            </div>
+            
+            {/* Completion Tooltip */}
+            {showCompletionTooltip && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginTop: '8px',
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                color: 'white',
+                padding: '12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                minWidth: '200px',
+                maxWidth: '300px',
+                zIndex: 1000,
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <div style={{ fontWeight: '600', marginBottom: '8px', textAlign: 'center' }}>
+                  Exercise Status
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {getExerciseCompletionDetails(selectedWorkout).length > 0 ? (
+                    getExerciseCompletionDetails(selectedWorkout).map((exercise: any, index: number) => (
+                      <div key={index} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        padding: '2px 0'
+                      }}>
+                        <span style={{ 
+                          fontSize: '14px',
+                          color: exercise.isCompleted ? '#10b981' : '#ef4444',
+                          fontWeight: 'bold'
+                        }}>
+                          {exercise.isCompleted ? '✓' : '✗'}
+                        </span>
+                        <span style={{ 
+                          color: exercise.isCompleted ? '#d1fae5' : '#fecaca',
+                          fontSize: '11px'
+                        }}>
+                          {exercise.name}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      color: '#9ca3af', 
+                      fontSize: '11px',
+                      fontStyle: 'italic'
+                    }}>
+                      Exercise details not available
+                      <br />
+                      {selectedWorkout.completedExercises.length} of {selectedWorkout.totalExercises} completed
+                    </div>
+                  )}
+                </div>
+                
+                {/* Tooltip Arrow */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 0,
+                  height: 0,
+                  borderLeft: '6px solid transparent',
+                  borderRight: '6px solid transparent',
+                  borderBottom: '6px solid rgba(0, 0, 0, 0.9)'
+                }}></div>
+              </div>
+            )}
           </div>
 
           {selectedWorkout.notes && (
@@ -231,7 +479,75 @@ function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
               borderRadius: '8px',
               marginBottom: '16px'
             }}>
-              <strong>Workout Notes:</strong> {selectedWorkout.notes}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <strong>Workout Notes:</strong>
+                <button
+                  onClick={() => startEditingGeneralNote(selectedWorkout.notes)}
+                  style={{
+                    backgroundColor: '#667eea',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    fontSize: '10px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✏️ Edit
+                </button>
+              </div>
+              {editingGeneralNote ? (
+                <div>
+                  <textarea
+                    value={editedGeneralNote}
+                    onChange={(e) => setEditedGeneralNote(e.target.value)}
+                    style={{
+                      width: '100%',
+                      minHeight: '60px',
+                      padding: '8px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontFamily: 'inherit',
+                      resize: 'vertical',
+                      marginBottom: '8px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={saveEditedGeneralNote}
+                      style={{
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      💾 Save
+                    </button>
+                    <button
+                      onClick={cancelEditingGeneralNote}
+                      style={{
+                        backgroundColor: '#6b7280',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>{selectedWorkout.notes}</div>
+              )}
             </div>
           )}
 
@@ -248,11 +564,103 @@ function WorkoutCalendar({ workoutHistory }: { workoutHistory: any[] }) {
                       padding: '8px 12px',
                       fontSize: '14px'
                     }}>
-                      <strong>{exerciseId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}:</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <strong>{exerciseId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}:</strong>
+                        <button
+                          onClick={() => addNewNote(exerciseId)}
+                          style={{
+                            backgroundColor: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '4px 8px',
+                            fontSize: '10px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ➕ Add Note
+                        </button>
+                      </div>
                       <div style={{ marginTop: '4px', color: '#6b7280' }}>
                         {notes.map((note: any, index: number) => (
-                          <div key={index} style={{ marginBottom: index < notes.length - 1 ? '4px' : '0' }}>
-                            <strong>{note.date}:</strong> {note.text}
+                          <div key={index} style={{ 
+                            marginBottom: index < notes.length - 1 ? '8px' : '0',
+                            padding: '8px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                            borderRadius: '4px',
+                            border: '1px solid rgba(186, 230, 253, 0.5)'
+                          }}>
+                            {editingNotes[`${exerciseId}-${index}`] ? (
+                              <div>
+                                <textarea
+                                  value={editedNotes[`${exerciseId}-${index}`] || ''}
+                                  onChange={(e) => setEditedNotes(prev => ({ ...prev, [`${exerciseId}-${index}`]: e.target.value }))}
+                                  style={{
+                                    width: '100%',
+                                    minHeight: '50px',
+                                    padding: '6px',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    fontFamily: 'inherit',
+                                    resize: 'vertical',
+                                    marginBottom: '6px',
+                                    boxSizing: 'border-box'
+                                  }}
+                                />
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button
+                                    onClick={() => saveEditedNote(exerciseId, index)}
+                                    style={{
+                                      backgroundColor: '#10b981',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '3px',
+                                      padding: '3px 8px',
+                                      fontSize: '10px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    💾 Save
+                                  </button>
+                                  <button
+                                    onClick={() => cancelEditingNote(`${exerciseId}-${index}`)}
+                                    style={{
+                                      backgroundColor: '#6b7280',
+                                      color: 'white',
+                                      border: 'none',
+                                      borderRadius: '3px',
+                                      padding: '3px 8px',
+                                      fontSize: '10px',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    ❌ Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ flex: 1 }}>
+                                  <strong>{note.date}:</strong> {note.text}
+                                </div>
+                                <button
+                                  onClick={() => startEditingNote(`${exerciseId}-${index}`, note.text)}
+                                  style={{
+                                    backgroundColor: '#667eea',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '3px',
+                                    padding: '2px 6px',
+                                    fontSize: '9px',
+                                    cursor: 'pointer',
+                                    marginLeft: '8px'
+                                  }}
+                                >
+                                  ✏️ Edit
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -293,6 +701,21 @@ function PTExerciseTrackerContent() {
   const [tempModifications, setTempModifications] = useState<{[key: string]: any}>({});
   const [dataLoaded, setDataLoaded] = useState(false);
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+
+  // Function to update workout history and persist to storage
+  const updateWorkoutHistory = (newHistory: any[]) => {
+    setWorkoutHistory(newHistory);
+    // Also save to localStorage/sessionStorage
+    try {
+      localStorage.setItem('fysio_workout_history', JSON.stringify(newHistory));
+    } catch (error) {
+      try {
+        sessionStorage.setItem('fysio_workout_history', JSON.stringify(newHistory));
+      } catch (sessionError) {
+        console.warn('Failed to save workout history:', sessionError);
+      }
+    }
+  };
   
   // Stable first name extraction
   const userFirstName = useMemo(() => {
@@ -400,8 +823,25 @@ function PTExerciseTrackerContent() {
               id: 'demo-workout-1',
               date: new Date().toISOString().split('T')[0],
               completedExercises: ['neck-rolls', 'shoulder-shrugs'],
+              totalExercises: 3,
+              completionPercentage: 67,
               notes: 'Feeling good today!',
-              userId: user?.id
+              userId: user?.id,
+              completedAt: new Date().toISOString(),
+              // Add exercise list for tooltip functionality
+              exercises: [
+                { id: 'neck-rolls', name: 'Neck Rolls', category: 'Neck & Cervical' },
+                { id: 'shoulder-shrugs', name: 'Shoulder Shrugs', category: 'Upper Body' },
+                { id: 'arm-circles', name: 'Arm Circles', category: 'Upper Body' }
+              ],
+              routine: {
+                name: 'Morning Mobility',
+                exercises: [
+                  { id: 'neck-rolls', name: 'Neck Rolls', category: 'Neck & Cervical' },
+                  { id: 'shoulder-shrugs', name: 'Shoulder Shrugs', category: 'Upper Body' },
+                  { id: 'arm-circles', name: 'Arm Circles', category: 'Upper Body' }
+                ]
+              }
             }
           ];
           
@@ -589,7 +1029,21 @@ function PTExerciseTrackerContent() {
         notes: completionNotes,
         exerciseNotes: { ...exerciseNotes },
         userId: user?.id,
-        completedAt: new Date().toISOString()
+        completedAt: new Date().toISOString(),
+        // Add the full exercise list for tooltip functionality
+        exercises: allExercises.map(exercise => ({
+          id: exercise.id,
+          name: exercise.name,
+          category: exercise.category || 'General'
+        })),
+        routine: currentRoutine ? {
+          name: currentRoutine.name,
+          exercises: allExercises.map(exercise => ({
+            id: exercise.id,
+            name: exercise.name,
+            category: exercise.category || 'General'
+          }))
+        } : null
       };
 
       console.log('💾 Saving workout with date:', localDateString, 'and exercise notes:', exerciseNotes);
@@ -1535,7 +1989,7 @@ Sent via Fysio - Your Personal Exercise Tracker`;
           </div>
 
           {/* Calendar Component */}
-          <WorkoutCalendar workoutHistory={workoutHistory} />
+          <WorkoutCalendar workoutHistory={workoutHistory} onUpdateWorkoutHistory={updateWorkoutHistory} />
         </div>
       </div>
     );
