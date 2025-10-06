@@ -1485,14 +1485,44 @@ function PTExerciseTrackerContent() {
     const weeklyGrade = getLetterGrade(weeklyAdherence);
     const overallGrade = getLetterGrade(overallAdherence);
     
-    // Get recent notes from completed exercises
-    const recentNotes = [];
-    for (const exerciseId of completedExercises) {
+    // Create detailed exercise breakdown
+    const exerciseBreakdown = allExercises.map((exercise: any) => {
+      const isCompleted = completedExercises.includes(exercise.id);
+      const exerciseNotesList = exerciseNotes[exercise.id] || [];
+      const todaysNotes = exerciseNotesList.filter(note => 
+        note.date === new Date().toISOString().split('T')[0]
+      );
+      
+      let exerciseDetails = `${isCompleted ? '✅' : '❌'} ${exercise.name}`;
+      
+      // Add exercise specifications
+      if (exercise.sets) {
+        if (exercise.type === 'reps' && exercise.reps) {
+          exerciseDetails += ` (${exercise.sets} sets × ${exercise.reps} reps)`;
+        } else if (exercise.type === 'time' && exercise.duration) {
+          exerciseDetails += ` (${exercise.sets} sets × ${exercise.duration}s)`;
+        }
+      }
+      
+      // Add today's notes if any
+      if (todaysNotes.length > 0) {
+        const noteTexts = todaysNotes.map(note => `"${note.text}"`).join(', ');
+        exerciseDetails += `\n    Notes: ${noteTexts}`;
+      }
+      
+      return exerciseDetails;
+    });
+    
+    // Get all notes from today's session
+    const todaysAllNotes = [];
+    for (const exerciseId of Object.keys(exerciseNotes)) {
       const notes = exerciseNotes[exerciseId] || [];
-      if (notes.length > 0) {
-        const latestNote = notes[notes.length - 1];
+      const todaysNotes = notes.filter(note => 
+        note.date === new Date().toISOString().split('T')[0]
+      );
+      for (const note of todaysNotes) {
         const exerciseName = allExercises.find((ex: any) => ex.id === exerciseId)?.name || exerciseId;
-        recentNotes.push(`${exerciseName}: "${latestNote.text}"`);
+        todaysAllNotes.push(`${exerciseName}: "${note.text}"`);
       }
     }
     
@@ -1504,30 +1534,37 @@ function PTExerciseTrackerContent() {
       return `📈 Progress Update from ${userFirstName}`;
     };
     
-    // Create email body
+    // Create comprehensive email body
     const emailBody = `Hi ${user?.pt_name || 'Dr. Gauntlet'}!
 
-Hope you're doing well! I wanted to share my latest progress with Fysio:
+Hope you're doing well! I wanted to share my detailed progress from today's session:
 
-🎯 TODAY'S HIGHLIGHTS:
-${completedToday === totalToday ? '🎉 Completed ALL exercises today!' : `✅ Completed ${completedToday} out of ${totalToday} exercises`}
-${currentStreak > 0 ? `🔥 Current streak: ${currentStreak} day${currentStreak > 1 ? 's' : ''} strong!` : '🚀 Ready to start building my streak!'}
+🎯 TODAY'S SESSION SUMMARY:
+${completedToday === totalToday ? '🎉 Completed ALL prescribed exercises!' : `✅ Completed ${completedToday} out of ${totalToday} exercises (${Math.round((completedToday/totalToday)*100)}%)`}
+${currentStreak > 0 ? `🔥 Current workout streak: ${currentStreak} session${currentStreak > 1 ? 's' : ''} strong!` : '🚀 Starting fresh with today\'s session!'}
+Date: ${new Date().toLocaleDateString()}
+Time: ${new Date().toLocaleTimeString()}
 
-📊 CURRENT STATS:
-• This Week: ${weeklyGrade.grade} grade (${weeklyAdherence}% adherence)
-• Overall: ${overallGrade.grade} grade (${overallAdherence}% adherence)
-• Total Workouts Completed: ${workoutHistory.length}
+📋 DETAILED EXERCISE BREAKDOWN:
+${exerciseBreakdown.join('\n')}
 
-${recentNotes.length > 0 ? `💭 RECENT NOTES:
-${recentNotes.slice(0, 3).map(note => `• ${note}`).join('\n')}
+${todaysAllNotes.length > 0 ? `💭 TODAY'S NOTES & OBSERVATIONS:
+${todaysAllNotes.map(note => `• ${note}`).join('\n')}
 
-` : ''}${currentStreak >= 7 ? "I'm really feeling the momentum and seeing improvements! " : currentStreak >= 3 ? "Starting to feel stronger and more consistent! " : completedToday === totalToday ? "Feeling great about today's session! " : "Making steady progress! "}Thanks for all your guidance and support.
+` : ''}📊 PROGRESS STATS:
+• This Week: ${weeklyGrade.grade} (${weeklyAdherence}% adherence)
+• Overall: ${overallGrade.grade} (${overallAdherence}% adherence)
+• Total Sessions Completed: ${workoutHistory.length}
+• Current Routine: ${currentRoutine?.name || 'Custom Routine'}
+
+${completedToday === totalToday ? "Feeling accomplished after completing everything today! " : completedToday > 0 ? "Made good progress today and noting areas for improvement. " : "Had some challenges today but staying committed to the program. "}${currentStreak >= 7 ? "The consistency is really paying off - feeling stronger and more confident with the movements! " : currentStreak >= 3 ? "Building good momentum and starting to see improvements! " : "Focused on proper form and taking it one session at a time. "}Thanks for all your guidance and support.
 
 Best regards,
 ${userFirstName}
 
 ---
-Sent via Fysio - Your Personal Exercise Tracker`;
+Generated by Fysio PT Exercise Tracker
+${new Date().toLocaleString()}`;
 
     // Create mailto link
     const subject = encodeURIComponent(getMotivationalSubject());
