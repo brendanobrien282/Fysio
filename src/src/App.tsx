@@ -1373,11 +1373,8 @@ function PTExerciseTrackerContent() {
       weeklyWorkouts.map(workout => workout.date)
     ).size;
     
-    // Count days from start of week to today (minimum 1 day)
-    const daysIntoWeek = Math.max(1, today.getDay() + 1); // Sunday = 1, Monday = 2, etc.
-    
-    const weeklyAdherence = workoutHistory.length > 0 ? 
-      Math.min((uniqueWorkoutDays / daysIntoWeek) * 100, 100) : 0;
+    // Simple PT logic: Any workout this week = 100% weekly adherence
+    const weeklyAdherence = uniqueWorkoutDays > 0 ? 100 : 0;
     
     // Overall adherence (since first workout)
     const firstWorkout = workoutHistory.length > 0 ? new Date(workoutHistory[0].date) : new Date();
