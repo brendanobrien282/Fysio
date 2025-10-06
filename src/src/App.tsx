@@ -1480,17 +1480,34 @@ function PTExerciseTrackerContent() {
   };
 
   const generateProgressReport = () => {
-    const completedToday = completedExercises.length;
-    const totalToday = allExercises.length;
+    // Get today's workout data from history (most recent workout for today)
+    const todayString = new Date().toISOString().split('T')[0];
+    const todaysWorkout = workoutHistory.find(workout => workout.date === todayString);
+    
+    // Use saved workout data if available, otherwise fall back to current state
+    const completedToday = todaysWorkout ? todaysWorkout.completedExercises.length : completedExercises.length;
+    const totalToday = todaysWorkout ? todaysWorkout.totalExercises : allExercises.length;
+    const workoutCompletedExercises = todaysWorkout ? todaysWorkout.completedExercises : completedExercises;
+    const workoutExerciseNotes = todaysWorkout ? todaysWorkout.exerciseNotes : exerciseNotes;
+    const workoutExercises = todaysWorkout ? (todaysWorkout.exercises || allExercises) : allExercises;
+    
     const weeklyGrade = getLetterGrade(weeklyAdherence);
     const overallGrade = getLetterGrade(overallAdherence);
     
-    // Create detailed exercise breakdown
-    const exerciseBreakdown = allExercises.map((exercise: any) => {
-      const isCompleted = completedExercises.includes(exercise.id);
-      const exerciseNotesList = exerciseNotes[exercise.id] || [];
-      const todaysNotes = exerciseNotesList.filter(note => 
-        note.date === new Date().toISOString().split('T')[0]
+    console.log('📊 Progress Report Debug:', {
+      todaysWorkout,
+      completedToday,
+      totalToday,
+      workoutCompletedExercises,
+      workoutExerciseNotes
+    });
+    
+    // Create detailed exercise breakdown using saved workout data
+    const exerciseBreakdown = workoutExercises.map((exercise: any) => {
+      const isCompleted = workoutCompletedExercises.includes(exercise.id);
+      const exerciseNotesList = workoutExerciseNotes[exercise.id] || [];
+      const todaysNotes = exerciseNotesList.filter((note: any) => 
+        note.date === todayString
       );
       
       let exerciseDetails = `${isCompleted ? '✅' : '❌'} ${exercise.name}`;
@@ -1513,15 +1530,15 @@ function PTExerciseTrackerContent() {
       return exerciseDetails;
     });
     
-    // Get all notes from today's session
+    // Get all notes from today's session using saved workout data
     const todaysAllNotes = [];
-    for (const exerciseId of Object.keys(exerciseNotes)) {
-      const notes = exerciseNotes[exerciseId] || [];
-      const todaysNotes = notes.filter(note => 
-        note.date === new Date().toISOString().split('T')[0]
+    for (const exerciseId of Object.keys(workoutExerciseNotes)) {
+      const notes = workoutExerciseNotes[exerciseId] || [];
+      const todaysNotes = notes.filter((note: any) => 
+        note.date === todayString
       );
       for (const note of todaysNotes) {
-        const exerciseName = allExercises.find((ex: any) => ex.id === exerciseId)?.name || exerciseId;
+        const exerciseName = workoutExercises.find((ex: any) => ex.id === exerciseId)?.name || exerciseId;
         todaysAllNotes.push(`${exerciseName}: "${note.text}"`);
       }
     }
