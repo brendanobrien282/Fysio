@@ -1,4 +1,4 @@
-# 🏋️‍♀️ FYSIO - PT Exercise Tracker
+# 🏋️‍♀️ FYSIO - Your Personal Exercise Tracker
 
 A modern React application built with Vite and TypeScript for tracking physical therapy exercises and maintaining workout consistency.
 
@@ -27,8 +27,8 @@ A modern React application built with Vite and TypeScript for tracking physical 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/PT-Exercise-Tracker.git
-   cd PT-Exercise-Tracker
+   git clone https://github.com/YOUR_USERNAME/Fysio.git
+   cd Fysio
    ```
 
 2. Install dependencies:

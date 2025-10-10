@@ -247,7 +247,7 @@ function AuthForm({ onSwitchMode, isLogin, onSignupSuccess }: AuthFormProps) {
             FYSIO
           </h1>
           <p style={{ color: '#718096', margin: 0 }}>
-            Your personal exercise tracker!
+            Your personal Fysio!
           </p>
           {(isLogin || !isLogin) && (
             <p style={{ color: '#4a5568', margin: '10px 0 0 0', fontSize: '0.9rem', fontWeight: '600' }}>

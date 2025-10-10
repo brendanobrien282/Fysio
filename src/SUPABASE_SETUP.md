@@ -1,6 +1,6 @@
 # 🛡️ Supabase Authentication Setup Guide
 
-Your PT Exercise Tracker now uses **Supabase** for real authentication! Follow these steps to get everything working.
+Your Fysio app now uses **Supabase** for real authentication! Follow these steps to get everything working.
 
 ## 🚀 Quick Setup (5 minutes)
 
@@ -8,7 +8,7 @@ Your PT Exercise Tracker now uses **Supabase** for real authentication! Follow t
 
 1. Go to [supabase.com](https://supabase.com)
 2. Click "Start your project" 
-3. Create a new project (choose any name, like "pt-exercise-tracker")
+3. Create a new project (choose any name, like "fysio")
 4. Wait for the project to initialize (takes ~2 minutes)
 
 ### 2. Get Your Credentials

@@ -1,5 +1,5 @@
 -- ============================================
--- Supabase Database Schema for PT Exercise Tracker
+-- Supabase Database Schema for Fysio
 -- ============================================
 -- Run these SQL commands in your Supabase SQL Editor
 -- (Dashboard -> SQL Editor -> New Query)
