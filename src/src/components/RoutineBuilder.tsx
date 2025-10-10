@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 // Comprehensive PT Exercise Database organized by categories
 const PT_EXERCISES = {
@@ -592,7 +592,7 @@ export default function RoutineBuilder({ onSaveRoutine, onCancel }: RoutineBuild
               No exercises added yet. Select exercises from the dropdown above.
             </div>
           ) : (
-            <div style={{ space: '12px' }}>
+            <div style={{ gap: '12px' }}>
               {selectedExercises.map((exercise, index) => (
                 <div key={index} style={{
                   backgroundColor: 'white',

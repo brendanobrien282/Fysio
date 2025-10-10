@@ -1031,14 +1031,14 @@ function PTExerciseTrackerContent() {
         userId: user?.id,
         completedAt: new Date().toISOString(),
         // Add the full exercise list for tooltip functionality
-        exercises: allExercises.map(exercise => ({
+        exercises: allExercises.map((exercise: any) => ({
           id: exercise.id,
           name: exercise.name,
           category: exercise.category || 'General'
         })),
         routine: currentRoutine ? {
           name: currentRoutine.name,
-          exercises: allExercises.map(exercise => ({
+          exercises: allExercises.map((exercise: any) => ({
             id: exercise.id,
             name: exercise.name,
             category: exercise.category || 'General'
@@ -1523,7 +1523,7 @@ function PTExerciseTrackerContent() {
       
       // Add today's notes if any
       if (todaysNotes.length > 0) {
-        const noteTexts = todaysNotes.map(note => `"${note.text}"`).join(', ');
+        const noteTexts = todaysNotes.map((note: any) => `"${note.text}"`).join(', ');
         exerciseDetails += `\n    Notes: ${noteTexts}`;
       }
       
