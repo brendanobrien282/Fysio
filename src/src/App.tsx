@@ -2749,7 +2749,7 @@ ${new Date().toLocaleString()}`;
             fontSize: '1.1rem',
             margin: 0
           }}>
-            Your Personal Fysio!
+            Your personal PT exercise tracker!
           </p>
         </div>
 
