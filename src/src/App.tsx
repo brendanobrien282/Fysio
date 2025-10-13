@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
@@ -875,10 +876,40 @@ function PTExerciseTrackerContent() {
     }
   }, [user, dataLoaded, welcomeDismissed, savedRoutines, workoutHistory]);
 
-  // Save data whenever it changes - In future, sync with Supabase database
+  // Load current workout session from localStorage on mount
   useEffect(() => {
-    // TODO: Implement data persistence with Supabase
-    // For now, data persists only during the session
+    if (user) {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const savedSession = localStorage.getItem(`fysio_current_session_${user.id}_${today}`);
+        if (savedSession) {
+          const { completedExercises: saved, exerciseNotes: savedNotes } = JSON.parse(savedSession);
+          setCompletedExercises(saved || []);
+          setExerciseNotes(savedNotes || exerciseNotes);
+          console.log('✅ Restored workout session:', saved?.length || 0, 'exercises completed');
+        }
+      } catch (error) {
+        console.warn('Failed to restore workout session:', error);
+      }
+    }
+  }, [user]);
+
+  // Save current workout session to localStorage whenever it changes
+  useEffect(() => {
+    if (user && completedExercises.length > 0) {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const sessionData = {
+          completedExercises,
+          exerciseNotes,
+          lastSaved: new Date().toISOString()
+        };
+        localStorage.setItem(`fysio_current_session_${user.id}_${today}`, JSON.stringify(sessionData));
+        console.log('💾 Saved current session:', completedExercises.length, 'exercises');
+      } catch (error) {
+        console.warn('Failed to save workout session:', error);
+      }
+    }
   }, [user, completedExercises, exerciseNotes]);
 
   const handleLogout = async () => {
@@ -986,30 +1017,22 @@ function PTExerciseTrackerContent() {
   };
 
   const handleCompleteWorkout = () => {
-    const completedCount = completedExercises.length;
-    const totalCount = allExercises.length;
-    
-    if (completedCount < totalCount) {
-      // Show warning dialog
-      setShowCompletionDialog(true);
-      // Scroll to position where modal will be perfectly centered
-      setTimeout(() => {
-        const documentHeight = document.documentElement.scrollHeight;
-        const windowHeight = window.innerHeight;
-        
-        // Calculate the scroll position that puts the modal center in the middle of viewport
-        const modalCenterPosition = documentHeight / 2; // Modal appears at 50% of document height
-        const idealScrollPosition = modalCenterPosition - (windowHeight / 2); // Center it in viewport
-        
-        window.scrollTo({
-          top: Math.max(0, idealScrollPosition),
-          behavior: 'smooth'
-        });
-      }, 100); // Small delay to ensure modal is rendered
-    } else {
-      // Complete workout directly
-      completeWorkout();
-    }
+    // Always show completion dialog to allow users to add notes
+    setShowCompletionDialog(true);
+    // Scroll to position where modal will be perfectly centered
+    setTimeout(() => {
+      const documentHeight = document.documentElement.scrollHeight;
+      const windowHeight = window.innerHeight;
+      
+      // Calculate the scroll position that puts the modal center in the middle of viewport
+      const modalCenterPosition = documentHeight / 2; // Modal appears at 50% of document height
+      const idealScrollPosition = modalCenterPosition - (windowHeight / 2); // Center it in viewport
+      
+      window.scrollTo({
+        top: Math.max(0, idealScrollPosition),
+        behavior: 'smooth'
+      });
+    }, 100); // Small delay to ensure modal is rendered
   };
 
   const completeWorkout = () => {
@@ -1071,6 +1094,18 @@ function PTExerciseTrackerContent() {
       setCompletedExercises([]);
       setCompletionNotes('');
       setShowCompletionDialog(false);
+      
+      // Clear today's session from localStorage since workout is logged
+      try {
+        const today = new Date();
+        const localDateString = today.getFullYear() + '-' + 
+          String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+          String(today.getDate()).padStart(2, '0');
+        localStorage.removeItem(`fysio_current_session_${user?.id}_${localDateString}`);
+        console.log('🧹 Cleared current session after logging workout');
+      } catch (error) {
+        console.warn('Failed to clear session:', error);
+      }
       
     } catch (error) {
       console.error('Failed to complete workout:', error);
@@ -2966,7 +3001,10 @@ ${new Date().toLocaleString()}`;
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '12px',
-          marginBottom: '30px'
+          marginBottom: '30px',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box'
         }}>
           <div style={{
             backgroundColor: 'white',
@@ -3011,40 +3049,48 @@ ${new Date().toLocaleString()}`;
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
-            padding: '16px',
+            padding: '12px',
             textAlign: 'center',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: `2px solid ${weeklyGrade.color}`
+            border: `2px solid ${weeklyGrade.color}`,
+            minWidth: 0,
+            maxWidth: '100%',
+            overflow: 'hidden',
+            boxSizing: 'border-box'
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '5px' }}>📊</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: '700', color: weeklyGrade.color, marginBottom: '2px' }}>
+            <div style={{ fontSize: '1.3rem', fontWeight: '700', color: weeklyGrade.color, marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 4px' }}>
               {weeklyGrade.grade}
             </div>
             <div style={{ fontSize: '0.85rem', color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               This Week
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#718096', marginTop: '2px' }}>
-              {workoutHistory.length > 0 ? `${weeklyAdherence}%` : 'Complete workouts to see grade'}
+            <div style={{ fontSize: '0.7rem', color: '#718096', marginTop: '2px', wordWrap: 'break-word', lineHeight: '1.2' }}>
+              {workoutHistory.length > 0 ? `${weeklyAdherence}%` : 'Start tracking'}
             </div>
           </div>
 
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
-            padding: '16px',
+            padding: '12px',
             textAlign: 'center',
             boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: `2px solid ${overallGrade.color}`
+            border: `2px solid ${overallGrade.color}`,
+            minWidth: 0,
+            maxWidth: '100%',
+            overflow: 'hidden',
+            boxSizing: 'border-box'
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '5px' }}>🏆</div>
-            <div style={{ fontSize: '1.8rem', fontWeight: '700', color: overallGrade.color, marginBottom: '2px' }}>
+            <div style={{ fontSize: '1.3rem', fontWeight: '700', color: overallGrade.color, marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 4px' }}>
               {overallGrade.grade}
             </div>
             <div style={{ fontSize: '0.85rem', color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               Overall
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#718096', marginTop: '2px' }}>
-              {workoutHistory.length > 0 ? `${overallAdherence}%` : 'Complete workouts to see grade'}
+            <div style={{ fontSize: '0.7rem', color: '#718096', marginTop: '2px', wordWrap: 'break-word', lineHeight: '1.2' }}>
+              {workoutHistory.length > 0 ? `${overallAdherence}%` : 'Start tracking'}
             </div>
           </div>
         </div>
@@ -3410,21 +3456,38 @@ ${new Date().toLocaleString()}`;
               zIndex: 1000
             }}>
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⚠️</div>
-                <h2 style={{ color: '#dc2626', margin: '0 0 12px 0' }}>
-                  Incomplete Workout
-                </h2>
-                <p style={{ color: '#374151', margin: 0 }}>
-                  You've only completed <strong>{completedExercises.length}</strong> of <strong>{allExercises.length}</strong> exercises ({Math.round((completedExercises.length / allExercises.length) * 100)}%).
-                </p>
-                <p style={{ color: '#6b7280', margin: '8px 0 0 0', fontSize: '14px' }}>
-                  Are you sure you want to complete today's workout?
-                </p>
+                {completedExercises.length === allExercises.length ? (
+                  <>
+                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🎉</div>
+                    <h2 style={{ color: '#059669', margin: '0 0 12px 0' }}>
+                      Amazing Work!
+                    </h2>
+                    <p style={{ color: '#374151', margin: 0 }}>
+                      You've completed <strong>all {allExercises.length} exercises</strong> (100%)!
+                    </p>
+                    <p style={{ color: '#6b7280', margin: '8px 0 0 0', fontSize: '14px' }}>
+                      Add notes about how today's workout went before logging it.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⚠️</div>
+                    <h2 style={{ color: '#dc2626', margin: '0 0 12px 0' }}>
+                      Incomplete Workout
+                    </h2>
+                    <p style={{ color: '#374151', margin: 0 }}>
+                      You've completed <strong>{completedExercises.length}</strong> of <strong>{allExercises.length}</strong> exercises ({Math.round((completedExercises.length / allExercises.length) * 100)}%).
+                    </p>
+                    <p style={{ color: '#6b7280', margin: '8px 0 0 0', fontSize: '14px' }}>
+                      Add notes about why you're finishing early (optional).
+                    </p>
+                  </>
+                )}
               </div>
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#374151' }}>
-                  Optional Notes (How did today's workout go?)
+                  Workout Notes (Optional)
                 </label>
                 <textarea
                   value={completionNotes}
@@ -3466,7 +3529,7 @@ ${new Date().toLocaleString()}`;
                   onClick={completeWorkout}
                   style={{
                     padding: '12px 24px',
-                    backgroundColor: '#dc2626',
+                    backgroundColor: completedExercises.length === allExercises.length ? '#10b981' : '#f59e0b',
                     color: 'white',
                     border: 'none',
                     borderRadius: '8px',
@@ -3475,7 +3538,7 @@ ${new Date().toLocaleString()}`;
                     fontSize: '16px'
                   }}
                 >
-                  Yes, Complete Workout
+                  {completedExercises.length === allExercises.length ? '✅ Log Workout' : '⚠️ Log Incomplete Workout'}
                 </button>
               </div>
             </div>
