@@ -718,6 +718,8 @@ function ExerciseCard({
   duration = 30,
   sets = 1
 }: ExerciseCardProps) {
+  // Debug logging
+  console.log('🔧 ExerciseCard rendered:', { id, title, exerciseType, duration, sets, isTimedMode: exerciseType === 'time' });
   // Add CSS animations for timer
   useEffect(() => {
     const style = document.createElement('style');
@@ -3795,6 +3797,7 @@ ${new Date().toLocaleString()}`;
             if (exercise.type === 'time') {
               console.log('🔍 Timed exercise:', exercise.name, 'duration:', exercise.duration, 'type:', exercise.type);
             }
+            console.log('📋 All exercise:', exercise.name, 'type:', exercise.type, 'duration:', exercise.duration);
             return (
             <div key={`${exercise.id}-${Object.keys(tempModifications).length}-${isEditMode ? 'edit' : 'normal'}`}>
           <ExerciseCard 
