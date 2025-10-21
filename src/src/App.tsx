@@ -1348,13 +1348,13 @@ function PTExerciseTrackerContent() {
     if (exerciseType === 'reps') {
       const setsInput = prompt('How many sets?', '2');
       const repsInput = prompt('How many reps per set?', '10');
-      sets = parseInt(setsInput || '2');
-      reps = parseInt(repsInput || '10');
+      sets = parseInt(setsInput || '2') || 2;
+      reps = parseInt(repsInput || '10') || 10;
     } else {
       const setsInput = prompt('How many sets?', '2');
       const durationInput = prompt('How many seconds per set?', '30');
-      sets = parseInt(setsInput || '2');
-      duration = parseInt(durationInput || '30');
+      sets = parseInt(setsInput || '2') || 2;
+      duration = parseInt(durationInput || '30') || 30;
     }
     
     const newExercise = {
@@ -1364,6 +1364,9 @@ function PTExerciseTrackerContent() {
       sets,
       ...(exerciseType === 'reps' ? { reps, type: 'reps' } : { duration, type: 'time' })
     };
+    
+    console.log('🔧 Creating new exercise:', newExercise);
+    console.log('🔧 Exercise type:', exerciseType, 'Duration:', duration, 'Sets:', sets);
     
     // Add to temp modifications
     setTempModifications(prev => ({
