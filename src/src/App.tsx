@@ -1246,8 +1246,10 @@ function PTExerciseTrackerContent() {
     if (exercise.type === 'reps') {
       return `${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${exercise.reps} repetitions`;
     } else {
-      const minutes = Math.floor(exercise.duration / 60);
-      const seconds = exercise.duration % 60;
+      // Ensure duration is a valid number
+      const duration = exercise.duration || 30;
+      const minutes = Math.floor(duration / 60);
+      const seconds = duration % 60;
       const timeStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds} seconds`;
       return `⏱️ ${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${timeStr} (TIMED EXERCISE)`;
     }
@@ -3248,7 +3250,12 @@ ${new Date().toLocaleString()}`;
             </div>
           )}
           
-          {allExercises.map((exercise: any) => (
+          {allExercises.map((exercise: any) => {
+            // Debug logging for timed exercises
+            if (exercise.type === 'time') {
+              console.log('🔍 Timed exercise:', exercise.name, 'duration:', exercise.duration, 'type:', exercise.type);
+            }
+            return (
             <div key={`${exercise.id}-${Object.keys(tempModifications).length}-${isEditMode ? 'edit' : 'normal'}`}>
           <ExerciseCard 
                 id={exercise.id}
@@ -3265,7 +3272,7 @@ ${new Date().toLocaleString()}`;
             onSaveNote={saveNote}
                 previousNotes={exerciseNotes[exercise.id] || []}
                 exerciseType={exercise.type || 'reps'}
-                duration={exercise.duration || 30}
+                duration={exercise.duration ? parseInt(exercise.duration) : 30}
                 sets={exercise.sets || 1}
               />
               
@@ -3381,7 +3388,8 @@ ${new Date().toLocaleString()}`;
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Complete Today's Exercises Button */}
