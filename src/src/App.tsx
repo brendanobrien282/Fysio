@@ -744,7 +744,7 @@ function ExerciseCard({
   const [countdownTime, setCountdownTime] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [showCountdownOptions, setShowCountdownOptions] = useState(false);
-  const [isTimedMode, setIsTimedMode] = useState(exerciseType === 'time'); // Track if user wants timed mode
+  const [isTimedMode, setIsTimedMode] = useState(false); // Start with reps mode for all exercises
 
   // Update timer state when duration changes
   useEffect(() => {
@@ -925,45 +925,43 @@ function ExerciseCard({
             </div>
           )}
           
-          {/* Exercise Mode Toggle */}
-          {!isCompleted && !isTimerActive && !isCountdownActive && (
-            <div style={{
-              display: 'flex',
-              gap: '4px',
-              marginBottom: '8px'
-            }}>
-              <button
-                onClick={() => setIsTimedMode(false)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: !isTimedMode ? '#667eea' : '#e2e8f0',
-                  color: !isTimedMode ? 'white' : '#4a5568',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '0.7rem',
-                  cursor: 'pointer',
-                  fontWeight: '500'
-                }}
-              >
-                Reps
-              </button>
-              <button
-                onClick={() => setIsTimedMode(true)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: isTimedMode ? '#667eea' : '#e2e8f0',
-                  color: isTimedMode ? 'white' : '#4a5568',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '0.7rem',
-                  cursor: 'pointer',
-                  fontWeight: '500'
-                }}
-              >
-                Timer
-              </button>
-            </div>
-          )}
+          {/* Exercise Mode Toggle - Show for all exercises */}
+          <div style={{
+            display: 'flex',
+            gap: '4px',
+            marginBottom: '8px'
+          }}>
+            <button
+              onClick={() => setIsTimedMode(false)}
+              style={{
+                padding: '4px 8px',
+                backgroundColor: !isTimedMode ? '#667eea' : '#e2e8f0',
+                color: !isTimedMode ? 'white' : '#4a5568',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '0.7rem',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Reps
+            </button>
+            <button
+              onClick={() => setIsTimedMode(true)}
+              style={{
+                padding: '4px 8px',
+                backgroundColor: isTimedMode ? '#667eea' : '#e2e8f0',
+                color: isTimedMode ? 'white' : '#4a5568',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '0.7rem',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Timer
+            </button>
+          </div>
 
           {/* Main Action Button */}
           <button 
