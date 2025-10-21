@@ -858,23 +858,14 @@ function PTExerciseTrackerContent() {
     }
   }, [user]);
 
-  // Show welcome screen after data loads (only for new users)
+  // Show medical disclaimer every time user logs in
   useEffect(() => {
     if (user && dataLoaded && !welcomeDismissed) {
-      // Debug: Check what data we have
-      console.log('🔍 DEBUG: savedRoutines.length:', savedRoutines.length);
-      console.log('🔍 DEBUG: workoutHistory.length:', workoutHistory.length);
-      console.log('🔍 DEBUG: savedRoutines:', savedRoutines);
-      
-      // Only show welcome screen for truly new users (no routines, no history)
-      const isNewUser = savedRoutines.length === 0 && workoutHistory.length === 0;
-      console.log('🔍 DEBUG: isNewUser:', isNewUser);
-      
-      if (isNewUser) {
-        setShowWelcome(true);
-      }
+      // Show medical disclaimer for ALL users on every login
+      console.log('🔍 DEBUG: User logged in, showing medical disclaimer');
+      setShowMedicalDisclaimer(true);
     }
-  }, [user, dataLoaded, welcomeDismissed, savedRoutines, workoutHistory]);
+  }, [user, dataLoaded, welcomeDismissed]);
 
   // Load current workout session from localStorage on mount
   useEffect(() => {
@@ -1809,7 +1800,12 @@ ${new Date().toLocaleString()}`;
             <button
               onClick={() => {
                 setShowMedicalDisclaimer(false);
-                setShowWelcome(true);
+                // Check if user is new to determine next step
+                const isNewUser = savedRoutines.length === 0 && workoutHistory.length === 0;
+                if (isNewUser) {
+                  setShowWelcome(true);
+                }
+                // If not new user, proceed directly to main app
               }}
               style={{
                 padding: '12px 24px',
@@ -1822,12 +1818,12 @@ ${new Date().toLocaleString()}`;
                 fontSize: '16px'
               }}
             >
-              ← Back to Welcome
+              ← Back
             </button>
             <button
               onClick={() => {
                 setShowMedicalDisclaimer(false);
-                // Proceed to main app (basic routine)
+                // Proceed directly to main app after acknowledging disclaimer
               }}
               style={{
                 padding: '12px 24px',
