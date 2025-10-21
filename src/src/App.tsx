@@ -1191,6 +1191,8 @@ function PTExerciseTrackerContent() {
     { id: 'calf-raises', name: 'Calf Raises', category: 'Lower Body', sets: 2, reps: 12, type: 'reps' },
     { id: 'mini-squats', name: 'Mini Squats', category: 'Lower Body', sets: 2, reps: 10, type: 'reps' },
     { id: 'hamstring-stretch', name: 'Seated Hamstring Stretch', category: 'Flexibility', sets: 2, duration: 30, type: 'time' },
+    { id: 'plank-hold', name: 'Plank Hold', category: 'Core', sets: 3, duration: 20, type: 'time' },
+    { id: 'wall-sit', name: 'Wall Sit', category: 'Lower Body', sets: 2, duration: 15, type: 'time' },
     { id: 'ankle-circles', name: 'Ankle Circles', category: 'Lower Body', sets: 1, reps: 10, type: 'reps' },
     { id: 'balance-stands', name: 'Single-Leg Balance', category: 'Balance', sets: 2, duration: 15, type: 'time' }
   ];
@@ -1231,9 +1233,11 @@ function PTExerciseTrackerContent() {
   console.log('📋 Final allExercises:', allExercises.map((ex: any) => ex.id));
 
   // Helper function to get exercise icon - simple and clean
-  const getExerciseEmoji = (_exercise: any) => {
-    // Just return a simple bullet point for all exercises
-    // Clean and consistent, no confusing emojis
+  const getExerciseEmoji = (exercise: any) => {
+    // Show timer emoji for timed exercises, bullet for reps
+    if (exercise.type === 'time') {
+      return '⏱️';
+    }
     return '•';
   };
 
@@ -1245,7 +1249,7 @@ function PTExerciseTrackerContent() {
       const minutes = Math.floor(exercise.duration / 60);
       const seconds = exercise.duration % 60;
       const timeStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds} seconds`;
-      return `${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${timeStr}`;
+      return `⏱️ ${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${timeStr} (TIMED EXERCISE)`;
     }
   };
 
@@ -3260,6 +3264,9 @@ ${new Date().toLocaleString()}`;
             onUpdateNote={updateCurrentNote}
             onSaveNote={saveNote}
                 previousNotes={exerciseNotes[exercise.id] || []}
+                exerciseType={exercise.type || 'reps'}
+                duration={exercise.duration || 30}
+                sets={exercise.sets || 1}
               />
               
               {/* Edit Controls - Only shown in edit mode */}
