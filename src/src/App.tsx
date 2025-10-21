@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
 import RoutineBuilder from './components/RoutineBuilder';
@@ -861,8 +861,24 @@ function ExerciseCard({
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
       border: isCompleted ? '2px solid #48bb78' : '1px solid #e2e8f0',
       transition: 'all 0.3s ease',
-      opacity: isCompleted ? 0.8 : 1
+      opacity: isCompleted ? 0.8 : 1,
+      position: 'relative' // DEBUG: For absolute positioning
     }}>
+      {/* DEBUG: Big obvious message */}
+      <div style={{
+        position: 'absolute',
+        top: '-10px',
+        right: '-10px',
+        backgroundColor: 'red',
+        color: 'white',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        fontSize: '0.7rem',
+        fontWeight: 'bold',
+        zIndex: 1000
+      }}>
+        TIMER DEBUG: {isTimedMode ? 'TIMER MODE' : 'REPS MODE'}
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
@@ -929,7 +945,10 @@ function ExerciseCard({
           <div style={{
             display: 'flex',
             gap: '4px',
-            marginBottom: '8px'
+            marginBottom: '8px',
+            border: '3px solid red', // DEBUG: Make it obvious
+            padding: '4px',
+            backgroundColor: 'yellow' // DEBUG: Make it obvious
           }}>
             <button
               onClick={() => setIsTimedMode(false)}
