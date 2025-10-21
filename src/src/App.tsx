@@ -742,6 +742,7 @@ function ExerciseCard({
   const [countdownTime, setCountdownTime] = useState(0);
   const [currentSet, setCurrentSet] = useState(1);
   const [showCountdownOptions, setShowCountdownOptions] = useState(false);
+  const [isTimedMode, setIsTimedMode] = useState(exerciseType === 'time'); // Track if user wants timed mode
 
   // Update timer state when duration changes
   useEffect(() => {
@@ -804,7 +805,7 @@ function ExerciseCard({
   };
 
   const startTimer = () => {
-    if (exerciseType === 'time') {
+    if (isTimedMode) {
       setShowCountdownOptions(true);
     } else {
       onComplete(id);
@@ -874,7 +875,7 @@ function ExerciseCard({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
           {/* Timer Display for timed exercises */}
-          {exerciseType === 'time' && (isTimerActive || isCountdownActive) && (
+          {isTimedMode && (isTimerActive || isCountdownActive) && (
             <div style={{
               backgroundColor: isCountdownActive ? '#f59e0b' : '#10b981',
               color: 'white',
@@ -893,7 +894,7 @@ function ExerciseCard({
           )}
           
           {/* Progress Bar for timed exercises */}
-          {exerciseType === 'time' && isTimerActive && (
+          {isTimedMode && isTimerActive && (
             <div style={{
               width: '120px',
               height: '6px',
@@ -912,7 +913,7 @@ function ExerciseCard({
           )}
           
           {/* Set Counter for timed exercises */}
-          {exerciseType === 'time' && sets > 1 && (
+          {isTimedMode && sets > 1 && (
             <div style={{
               fontSize: '0.8rem',
               color: '#6b7280',
@@ -922,6 +923,46 @@ function ExerciseCard({
             </div>
           )}
           
+          {/* Exercise Mode Toggle */}
+          {!isCompleted && !isTimerActive && !isCountdownActive && (
+            <div style={{
+              display: 'flex',
+              gap: '4px',
+              marginBottom: '8px'
+            }}>
+              <button
+                onClick={() => setIsTimedMode(false)}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: !isTimedMode ? '#667eea' : '#e2e8f0',
+                  color: !isTimedMode ? 'white' : '#4a5568',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                Reps
+              </button>
+              <button
+                onClick={() => setIsTimedMode(true)}
+                style={{
+                  padding: '4px 8px',
+                  backgroundColor: isTimedMode ? '#667eea' : '#e2e8f0',
+                  color: isTimedMode ? 'white' : '#4a5568',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '0.7rem',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
+              >
+                Timer
+              </button>
+            </div>
+          )}
+
           {/* Main Action Button */}
           <button 
             onClick={startTimer}
@@ -943,11 +984,11 @@ function ExerciseCard({
             {isCompleted ? '✓ Done' : 
              isTimerActive ? '⏱️ Running...' :
              isCountdownActive ? '⏰ Get Ready!' :
-             exerciseType === 'time' ? '⏱️ Start Timer' : 'Complete'}
+             isTimedMode ? '⏱️ Start Timer' : 'Complete'}
           </button>
           
           {/* Reset Button for timed exercises */}
-          {exerciseType === 'time' && (isTimerActive || isCountdownActive || currentSet > 1) && (
+          {isTimedMode && (isTimerActive || isCountdownActive || currentSet > 1) && (
             <button 
               onClick={resetTimer}
               style={{
@@ -1835,7 +1876,7 @@ function PTExerciseTrackerContent() {
     const exerciseName = prompt('Enter exercise name:');
     if (!exerciseName) return;
     
-    const exerciseType = confirm('Is this a repetition-based exercise?\nOK = Reps, Cancel = Time-based') ? 'reps' : 'time';
+    const exerciseType = confirm('Choose exercise type:\nOK = Reps/Sets, Cancel = Timer-based') ? 'reps' : 'time';
     
     let sets = 1;
     let reps = 10;
