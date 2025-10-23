@@ -1,8 +1,9 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
 import RoutineBuilder from './components/RoutineBuilder';
+import ExerciseCard from './components/ExerciseCard';
 
 // Workout Calendar Component
 function WorkoutCalendar({ workoutHistory, onUpdateWorkoutHistory }: { workoutHistory: any[], onUpdateWorkoutHistory: (newHistory: any[]) => void }) {
@@ -680,563 +681,6 @@ function WorkoutCalendar({ workoutHistory, onUpdateWorkoutHistory }: { workoutHi
   );
 }
 
-// ExerciseCard Component
-interface ExerciseCardProps {
-  id: string;
-  emoji: string;
-  title: string;
-  description: string;
-  placeholder: string;
-  isCompleted: boolean;
-  onComplete: (id: string) => void;
-  isNoteExpanded: boolean;
-  onToggleNote: (id: string) => void;
-  currentNote: { text: string; date: string };
-  onUpdateNote: (id: string, field: string, value: string) => void;
-  onSaveNote: (id: string) => void;
-  previousNotes: any[];
-  exerciseType?: 'reps' | 'time';
-  duration?: number;
-  sets?: number;
-}
-
-function ExerciseCard({
-  id,
-  emoji,
-  title,
-  description,
-  placeholder,
-  isCompleted,
-  onComplete,
-  isNoteExpanded,
-  onToggleNote,
-  currentNote,
-  onUpdateNote,
-  onSaveNote,
-  previousNotes,
-  exerciseType = 'reps',
-  duration = 30,
-  sets = 1
-}: ExerciseCardProps) {
-  // Debug logging
-  console.log('🔧 ExerciseCard rendered:', { id, title, exerciseType, duration, sets, isTimedMode: exerciseType === 'time' });
-  // Add CSS animations for timer
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
-
-  // Timer state
-  const [isTimerActive, setIsTimerActive] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(duration);
-  const [isCountdownActive, setIsCountdownActive] = useState(false);
-  const [countdownTime, setCountdownTime] = useState(0);
-  const [currentSet, setCurrentSet] = useState(1);
-  const [showCountdownOptions, setShowCountdownOptions] = useState(false);
-  const [isTimedMode, setIsTimedMode] = useState(false); // Start with reps mode for all exercises
-
-  // Update timer state when duration changes
-  useEffect(() => {
-    setTimeRemaining(duration);
-  }, [duration]);
-
-  // Timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isTimerActive && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev <= 1) {
-            setIsTimerActive(false);
-            // Move to next set or complete exercise
-            if (currentSet < sets) {
-              setCurrentSet(prev => prev + 1);
-              return duration; // Reset timer for next set
-            } else {
-              // All sets completed
-              playNotificationSound(); // Play completion sound
-              onComplete(id);
-              return duration; // Reset for next time
-            }
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    
-    return () => clearInterval(interval);
-  }, [isTimerActive, timeRemaining, currentSet, sets, duration, id, onComplete]);
-
-  // Countdown effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    if (isCountdownActive && countdownTime > 0) {
-      interval = setInterval(() => {
-        setCountdownTime(prev => {
-          if (prev <= 1) {
-            setIsCountdownActive(false);
-            playNotificationSound(); // Play countdown completion sound
-            setIsTimerActive(true); // Start main timer after countdown
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    
-    return () => clearInterval(interval);
-  }, [isCountdownActive, countdownTime]);
-
-  const startCountdown = (seconds: number) => {
-    setCountdownTime(seconds);
-    setIsCountdownActive(true);
-    setShowCountdownOptions(false);
-  };
-
-  const startTimer = () => {
-    if (isTimedMode) {
-      setShowCountdownOptions(true);
-    } else {
-      onComplete(id);
-    }
-  };
-
-  const resetTimer = () => {
-    setIsTimerActive(false);
-    setIsCountdownActive(false);
-    setTimeRemaining(duration);
-    setCurrentSet(1);
-    setCountdownTime(0);
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Play notification sound
-  const playNotificationSound = () => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
-      
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    } catch (error) {
-      console.log('Audio notification not available');
-    }
-  };
-
-  return (
-    <div style={{
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      padding: '20px',
-      marginBottom: '15px',
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-      border: isCompleted ? '2px solid #48bb78' : '1px solid #e2e8f0',
-      transition: 'all 0.3s ease',
-      opacity: isCompleted ? 0.8 : 1,
-      position: 'relative' // DEBUG: For absolute positioning
-    }}>
-      {/* DEBUG: Big obvious message */}
-      <div style={{
-        position: 'absolute',
-        top: '-10px',
-        right: '-10px',
-        backgroundColor: 'red',
-        color: 'white',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        fontSize: '0.7rem',
-        fontWeight: 'bold',
-        zIndex: 1000
-      }}>
-        TIMER DEBUG: {isTimedMode ? 'TIMER MODE' : 'REPS MODE'}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-            <span style={{ fontSize: '1.5rem', marginRight: '10px' }}>{emoji}</span>
-            <span style={{ fontWeight: '600', color: '#2d3748', fontSize: '1.1rem' }}>
-              {title}
-            </span>
-          </div>
-          <p style={{ color: '#718096', margin: 0, fontSize: '0.95rem' }}>
-            {description}
-          </p>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-          {/* Timer Display for timed exercises */}
-          {isTimedMode && (isTimerActive || isCountdownActive) && (
-            <div style={{
-              backgroundColor: isCountdownActive ? '#f59e0b' : '#10b981',
-              color: 'white',
-              padding: '12px 20px',
-              borderRadius: '25px',
-              fontSize: '1.4rem',
-              fontWeight: 'bold',
-              minWidth: '100px',
-              textAlign: 'center',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              animation: isCountdownActive ? 'pulse 1s infinite' : 'none'
-            }}>
-              {isCountdownActive ? countdownTime : formatTime(timeRemaining)}
-            </div>
-          )}
-          
-          {/* Progress Bar for timed exercises */}
-          {isTimedMode && isTimerActive && (
-            <div style={{
-              width: '120px',
-              height: '6px',
-              backgroundColor: '#e5e7eb',
-              borderRadius: '3px',
-              overflow: 'hidden',
-              marginTop: '4px'
-            }}>
-              <div style={{
-                width: `${((duration - timeRemaining) / duration) * 100}%`,
-                height: '100%',
-                backgroundColor: '#10b981',
-                transition: 'width 1s linear'
-              }}></div>
-            </div>
-          )}
-          
-          {/* Set Counter for timed exercises */}
-          {isTimedMode && sets > 1 && (
-            <div style={{
-              fontSize: '0.8rem',
-              color: '#6b7280',
-              textAlign: 'center'
-            }}>
-              Set {currentSet} of {sets}
-            </div>
-          )}
-          
-          {/* Exercise Mode Toggle - Show for all exercises */}
-          <div style={{
-            display: 'flex',
-            gap: '4px',
-            marginBottom: '8px',
-            border: '3px solid red', // DEBUG: Make it obvious
-            padding: '4px',
-            backgroundColor: 'yellow' // DEBUG: Make it obvious
-          }}>
-            <button
-              onClick={() => setIsTimedMode(false)}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: !isTimedMode ? '#667eea' : '#e2e8f0',
-                color: !isTimedMode ? 'white' : '#4a5568',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '0.7rem',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              Reps
-            </button>
-            <button
-              onClick={() => setIsTimedMode(true)}
-              style={{
-                padding: '4px 8px',
-                backgroundColor: isTimedMode ? '#667eea' : '#e2e8f0',
-                color: isTimedMode ? 'white' : '#4a5568',
-                border: 'none',
-                borderRadius: '4px',
-                fontSize: '0.7rem',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              Timer
-            </button>
-          </div>
-
-          {/* Main Action Button */}
-          <button 
-            onClick={startTimer}
-            disabled={isTimerActive || isCountdownActive}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: isCompleted ? '#48bb78' : 
-                              isTimerActive || isCountdownActive ? '#9ca3af' : '#667eea',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: '600',
-              cursor: isTimerActive || isCountdownActive ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s ease',
-              fontSize: '0.9rem',
-              opacity: isTimerActive || isCountdownActive ? 0.7 : 1
-            }}
-          >
-            {isCompleted ? '✓ Done' : 
-             isTimerActive ? '⏱️ Running...' :
-             isCountdownActive ? '⏰ Get Ready!' :
-             isTimedMode ? '⏱️ Start Timer' : 'Complete'}
-          </button>
-          
-          {/* Reset Button for timed exercises */}
-          {isTimedMode && (isTimerActive || isCountdownActive || currentSet > 1) && (
-            <button 
-              onClick={resetTimer}
-              style={{
-                padding: '6px 12px',
-                backgroundColor: 'transparent',
-                color: '#6b7280',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '0.8rem',
-                cursor: 'pointer'
-              }}
-            >
-              Reset
-            </button>
-          )}
-        </div>
-      </div>
-      
-      <div style={{ marginTop: '12px' }}>
-        {!isNoteExpanded ? (
-          <button
-            onClick={() => onToggleNote(id)}
-            style={{
-              backgroundColor: '#f7fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              fontSize: '0.8rem',
-              color: '#4a5568',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}
-          >
-            📝 Add Note {previousNotes.length > 0 && `(${previousNotes.length})`}
-          </button>
-        ) : (
-          <div style={{
-            backgroundColor: '#f7fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '12px'
-          }}>
-            <div style={{ marginBottom: '8px' }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8rem', fontWeight: '500', color: '#4a5568' }}>
-                Today's Note:
-              </label>
-              <textarea
-                value={currentNote.text}
-                onChange={(e) => onUpdateNote(id, 'text', e.target.value)}
-                placeholder={placeholder}
-                rows={2}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
-                  fontSize: '0.8rem',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => onToggleNote(id)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: 'transparent',
-                  color: '#6b7280',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '4px',
-                  fontSize: '0.7rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => onSaveNote(id)}
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: '#667eea',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '0.7rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* Previous Notes */}
-        {previousNotes.length > 0 && (
-          <div style={{ marginTop: '8px' }}>
-            <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginBottom: '4px' }}>
-              Previous Notes:
-            </div>
-            {previousNotes.map((note: any, index: number) => (
-              <div key={index} style={{
-                backgroundColor: '#f9fafb',
-                border: '1px solid #e5e7eb',
-                borderRadius: '4px',
-                padding: '6px 8px',
-                marginBottom: '4px',
-                fontSize: '0.7rem'
-              }}>
-                <div style={{ color: '#6b7280', marginBottom: '2px' }}>
-                  {new Date(note.date).toLocaleDateString()}
-                </div>
-                <div style={{ color: '#374151' }}>
-                  {note.text}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      {/* Countdown Options Modal */}
-      {showCountdownOptions && (
-        <>
-          {/* Backdrop */}
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 999
-          }}></div>
-          
-          {/* Modal */}
-          <div style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '90%',
-            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
-            zIndex: 1000
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '12px' }}>⏰</div>
-              <h3 style={{ color: '#2d3748', margin: '0 0 8px 0', fontSize: '1.3rem', fontWeight: '600' }}>
-                Get Ready!
-              </h3>
-              <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>
-                Choose countdown time to get into position for <strong>{title}</strong>
-              </p>
-              <p style={{ color: '#10b981', margin: '8px 0 0 0', fontSize: '0.8rem', fontWeight: '500' }}>
-                Exercise Duration: {formatTime(duration)}
-              </p>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-              {[3, 5, 10, 15].map(seconds => (
-                <button
-                  key={seconds}
-                  onClick={() => startCountdown(seconds)}
-                  style={{
-                    padding: '12px',
-                    backgroundColor: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#5a67d8'}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#667eea'}
-                >
-                  {seconds}s
-                </button>
-              ))}
-            </div>
-            
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button
-                onClick={() => {
-                  setShowCountdownOptions(false);
-                  setIsTimerActive(true); // Start timer immediately
-                }}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Start Now
-              </button>
-              <button
-                onClick={() => setShowCountdownOptions(false)}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#e2e8f0',
-                  color: '#4a5568',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
 // Main Fysio component
 function PTExerciseTrackerContent() {
   const { user, loading } = useAuth();
@@ -1414,14 +858,23 @@ function PTExerciseTrackerContent() {
     }
   }, [user]);
 
-  // Show medical disclaimer every time user logs in
+  // Show welcome screen after data loads (only for new users)
   useEffect(() => {
     if (user && dataLoaded && !welcomeDismissed) {
-      // Show medical disclaimer for ALL users on every login
-      console.log('🔍 DEBUG: User logged in, showing medical disclaimer');
-      setShowMedicalDisclaimer(true);
+      // Debug: Check what data we have
+      console.log('🔍 DEBUG: savedRoutines.length:', savedRoutines.length);
+      console.log('🔍 DEBUG: workoutHistory.length:', workoutHistory.length);
+      console.log('🔍 DEBUG: savedRoutines:', savedRoutines);
+      
+      // Only show welcome screen for truly new users (no routines, no history)
+      const isNewUser = savedRoutines.length === 0 && workoutHistory.length === 0;
+      console.log('🔍 DEBUG: isNewUser:', isNewUser);
+      
+      if (isNewUser) {
+        setShowWelcome(true);
+      }
     }
-  }, [user, dataLoaded, welcomeDismissed]);
+  }, [user, dataLoaded, welcomeDismissed, savedRoutines, workoutHistory]);
 
   // Load current workout session from localStorage on mount
   useEffect(() => {
@@ -1747,8 +1200,6 @@ function PTExerciseTrackerContent() {
     { id: 'calf-raises', name: 'Calf Raises', category: 'Lower Body', sets: 2, reps: 12, type: 'reps' },
     { id: 'mini-squats', name: 'Mini Squats', category: 'Lower Body', sets: 2, reps: 10, type: 'reps' },
     { id: 'hamstring-stretch', name: 'Seated Hamstring Stretch', category: 'Flexibility', sets: 2, duration: 30, type: 'time' },
-    { id: 'plank-hold', name: 'Plank Hold', category: 'Core', sets: 3, duration: 20, type: 'time' },
-    { id: 'wall-sit', name: 'Wall Sit', category: 'Lower Body', sets: 2, duration: 15, type: 'time' },
     { id: 'ankle-circles', name: 'Ankle Circles', category: 'Lower Body', sets: 1, reps: 10, type: 'reps' },
     { id: 'balance-stands', name: 'Single-Leg Balance', category: 'Balance', sets: 2, duration: 15, type: 'time' }
   ];
@@ -1789,11 +1240,9 @@ function PTExerciseTrackerContent() {
   console.log('📋 Final allExercises:', allExercises.map((ex: any) => ex.id));
 
   // Helper function to get exercise icon - simple and clean
-  const getExerciseEmoji = (exercise: any) => {
-    // Show timer emoji for timed exercises, bullet for reps
-    if (exercise.type === 'time') {
-      return '⏱️';
-    }
+  const getExerciseEmoji = (_exercise: any) => {
+    // Just return a simple bullet point for all exercises
+    // Clean and consistent, no confusing emojis
     return '•';
   };
 
@@ -1802,12 +1251,10 @@ function PTExerciseTrackerContent() {
     if (exercise.type === 'reps') {
       return `${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${exercise.reps} repetitions`;
     } else {
-      // Ensure duration is a valid number
-      const duration = exercise.duration || 30;
-      const minutes = Math.floor(duration / 60);
-      const seconds = duration % 60;
+      const minutes = Math.floor(exercise.duration / 60);
+      const seconds = exercise.duration % 60;
       const timeStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds} seconds`;
-      return `⏱️ ${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${timeStr} (TIMED EXERCISE)`;
+      return `${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${timeStr}`;
     }
   };
 
@@ -1895,7 +1342,7 @@ function PTExerciseTrackerContent() {
     const exerciseName = prompt('Enter exercise name:');
     if (!exerciseName) return;
     
-    const exerciseType = confirm('Choose exercise type:\nOK = Reps/Sets, Cancel = Timer-based') ? 'reps' : 'time';
+    const exerciseType = confirm('Is this a repetition-based exercise?\nOK = Reps, Cancel = Time-based') ? 'reps' : 'time';
     
     let sets = 1;
     let reps = 10;
@@ -1904,13 +1351,13 @@ function PTExerciseTrackerContent() {
     if (exerciseType === 'reps') {
       const setsInput = prompt('How many sets?', '2');
       const repsInput = prompt('How many reps per set?', '10');
-      sets = parseInt(setsInput || '2') || 2;
-      reps = parseInt(repsInput || '10') || 10;
+      sets = parseInt(setsInput || '2');
+      reps = parseInt(repsInput || '10');
     } else {
       const setsInput = prompt('How many sets?', '2');
       const durationInput = prompt('How many seconds per set?', '30');
-      sets = parseInt(setsInput || '2') || 2;
-      duration = parseInt(durationInput || '30') || 30;
+      sets = parseInt(setsInput || '2');
+      duration = parseInt(durationInput || '30');
     }
     
     const newExercise = {
@@ -1920,9 +1367,6 @@ function PTExerciseTrackerContent() {
       sets,
       ...(exerciseType === 'reps' ? { reps, type: 'reps' } : { duration, type: 'time' })
     };
-    
-    console.log('🔧 Creating new exercise:', newExercise);
-    console.log('🔧 Exercise type:', exerciseType, 'Duration:', duration, 'Sets:', sets);
     
     // Add to temp modifications
     setTempModifications(prev => ({
@@ -2365,12 +1809,7 @@ ${new Date().toLocaleString()}`;
             <button
               onClick={() => {
                 setShowMedicalDisclaimer(false);
-                // Check if user is new to determine next step
-                const isNewUser = savedRoutines.length === 0 && workoutHistory.length === 0;
-                if (isNewUser) {
-                  setShowWelcome(true);
-                }
-                // If not new user, proceed directly to main app
+                setShowWelcome(true);
               }}
               style={{
                 padding: '12px 24px',
@@ -2383,12 +1822,12 @@ ${new Date().toLocaleString()}`;
                 fontSize: '16px'
               }}
             >
-              ← Back
+              ← Back to Welcome
             </button>
             <button
               onClick={() => {
                 setShowMedicalDisclaimer(false);
-                // Proceed directly to main app after acknowledging disclaimer
+                // Proceed to main app (basic routine)
               }}
               style={{
                 padding: '12px 24px',
@@ -3809,13 +3248,7 @@ ${new Date().toLocaleString()}`;
             </div>
           )}
           
-          {allExercises.map((exercise: any) => {
-            // Debug logging for timed exercises
-            if (exercise.type === 'time') {
-              console.log('🔍 Timed exercise:', exercise.name, 'duration:', exercise.duration, 'type:', exercise.type);
-            }
-            console.log('📋 All exercise:', exercise.name, 'type:', exercise.type, 'duration:', exercise.duration);
-            return (
+          {allExercises.map((exercise: any) => (
             <div key={`${exercise.id}-${Object.keys(tempModifications).length}-${isEditMode ? 'edit' : 'normal'}`}>
           <ExerciseCard 
                 id={exercise.id}
@@ -3831,9 +3264,6 @@ ${new Date().toLocaleString()}`;
             onUpdateNote={updateCurrentNote}
             onSaveNote={saveNote}
                 previousNotes={exerciseNotes[exercise.id] || []}
-                exerciseType={exercise.type || 'reps'}
-                duration={exercise.duration ? parseInt(exercise.duration) : 30}
-                sets={exercise.sets || 1}
               />
               
               {/* Edit Controls - Only shown in edit mode */}
@@ -3948,8 +3378,7 @@ ${new Date().toLocaleString()}`;
                 </div>
               )}
             </div>
-            );
-          })}
+          ))}
         </div>
 
         {/* Complete Today's Exercises Button */}
