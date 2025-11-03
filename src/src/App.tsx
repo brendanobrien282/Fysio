@@ -1,4 +1,4 @@
-
+// Main PT Exercise Tracker Application
 import { useState, useEffect, useMemo } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthForm from './components/AuthForm';
