@@ -3570,7 +3570,7 @@ ${new Date().toLocaleString()}`;
   );
 }
 
-// Wrapper component with AuthProvider
+// Wrapper component with AuthProvider - Provides authentication context to the app
 function Fysio() {
   return (
     <AuthProvider>
