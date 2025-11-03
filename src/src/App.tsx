@@ -5,7 +5,7 @@ import AuthForm from './components/AuthForm';
 import RoutineBuilder from './components/RoutineBuilder';
 import ExerciseCard from './components/ExerciseCard';
 
-// Workout Calendar Component
+// Workout Calendar Component - Displays workout history and completion details
 function WorkoutCalendar({ workoutHistory, onUpdateWorkoutHistory }: { workoutHistory: any[], onUpdateWorkoutHistory: (newHistory: any[]) => void }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedWorkout, setSelectedWorkout] = useState<any>(null);
