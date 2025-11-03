@@ -681,7 +681,7 @@ function WorkoutCalendar({ workoutHistory, onUpdateWorkoutHistory }: { workoutHi
   );
 }
 
-// Main Fysio component
+// Main PT Exercise Tracker component - Handles authentication and workout tracking
 function PTExerciseTrackerContent() {
   const { user, loading } = useAuth();
   
