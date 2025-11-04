@@ -1246,11 +1246,12 @@ function PTExerciseTrackerContent() {
     return '•';
   };
 
-  // Helper function to format exercise description
+  // Helper function to format exercise description - handles both reps and timer-based exercises
   const getExerciseDescription = (exercise: any) => {
     if (exercise.type === 'reps') {
       return `${exercise.sets} set${exercise.sets > 1 ? 's' : ''} of ${exercise.reps} repetitions`;
     } else {
+      // Timer-based exercises: format duration in minutes:seconds or seconds only
       const minutes = Math.floor(exercise.duration / 60);
       const seconds = exercise.duration % 60;
       const timeStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds} seconds`;
