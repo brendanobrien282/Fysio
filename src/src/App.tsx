@@ -1188,7 +1188,7 @@ function PTExerciseTrackerContent() {
   };
 
 
-  // Basic Strengthening & Stretching Routine
+  // Basic Strengthening & Stretching Routine - Default exercise database
   const basicRoutineExercises = [
     { id: 'neck-rolls', name: 'Neck Rolls', category: 'Neck & Cervical', sets: 1, reps: 5, type: 'reps' },
     { id: 'shoulder-shrugs', name: 'Shoulder Shrugs', category: 'Upper Body', sets: 2, reps: 10, type: 'reps' },
