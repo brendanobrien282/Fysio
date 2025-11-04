@@ -1151,7 +1151,7 @@ function PTExerciseTrackerContent() {
       
       setSavedRoutines(userRoutines);
       
-      // If user has saved routines, use the most recent one as current
+      // If user has saved routines, use the most recent one as current routine
       if (userRoutines.length > 0) {
         const mostRecentRoutine = userRoutines.sort((a: any, b: any) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
