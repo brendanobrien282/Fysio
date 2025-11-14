@@ -1239,7 +1239,7 @@ function PTExerciseTrackerContent() {
 
   console.log('📋 Final allExercises:', allExercises.map((ex: any) => ex.id));
 
-  // Helper function to get exercise icon - simple and clean
+  // Helper function to get exercise icon - simple and clean design
   const getExerciseEmoji = (_exercise: any) => {
     // Just return a simple bullet point for all exercises
     // Clean and consistent, no confusing emojis
