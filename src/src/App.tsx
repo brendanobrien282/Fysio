@@ -1214,7 +1214,7 @@ function PTExerciseTrackerContent() {
     })) : 
     basicRoutineExercises;
 
-  // Apply temporary modifications if in edit mode
+  // Apply temporary modifications if in edit mode - allows real-time exercise adjustments
   const allExercises = baseExercises
     .map((ex: any) => {
       if (tempModifications[ex.id]) {
