@@ -1206,6 +1206,7 @@ function PTExerciseTrackerContent() {
   
   // Use current routine if available, otherwise use basic routine
   // Ensure custom routine exercises have proper IDs and apply temporary modifications
+  // Exercise list structure: supports both custom and default routines
   const baseExercises = currentRoutine ? 
     currentRoutine.exercises.map((ex: any) => ({
       ...ex,
