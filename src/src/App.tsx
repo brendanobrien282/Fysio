@@ -1260,7 +1260,7 @@ function PTExerciseTrackerContent() {
     }
   };
 
-  // Helper function to get exercise placeholder text
+  // Helper function to get exercise placeholder text - provides contextual prompts for notes
   const getExercisePlaceholder = (exercise: any) => {
     const name = exercise.name.toLowerCase();
     if (name.includes('neck')) return 'Any tension or stiffness in your neck?';
